@@ -1,0 +1,278 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'idea'
+    id 'net.neoforged.moddev' version '2.0.147'
+}
+
+version = mod_version
+group = mod_group_id
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    testLogging { events 'failed', 'skipped' }
+}
+
+// Verification fixtures are compiled only for dedicated validation runs and are
+// never included in the distributable mod or its sources archive.
+sourceSets {
+    test {
+        // Compile the standalone SDK example inside NeoForge's transformed test harness.
+        java.srcDir 'src/examples/java'
+    }
+    verification {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+    examples {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+    development {
+        compileClasspath += sourceSets.main.output + sourceSets.examples.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.examples.output
+    }
+}
+configurations {
+    verificationImplementation.extendsFrom implementation
+    verificationRuntimeOnly.extendsFrom runtimeOnly
+    examplesImplementation.extendsFrom implementation
+    examplesRuntimeOnly.extendsFrom runtimeOnly
+    developmentImplementation.extendsFrom implementation
+    developmentRuntimeOnly.extendsFrom runtimeOnly
+}
+
+base {
+    archivesName = mod_id
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+    withJavadocJar()
+}
+
+tasks.named('javadoc', Javadoc) {
+    source = sourceSets.main.allJava.matching { include 'fr/lkdm/homecore/api/**' }
+    classpath += sourceSets.main.output
+    options.encoding = 'UTF-8'
+    options.addBooleanOption('Xdoclint:all', true)
+    options.addBooleanOption('Werror', true)
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('examplesClasses'), tasks.named('developmentClasses'), tasks.named('verificationClasses')
+}
+
+tasks.withType(Jar).configureEach {
+    from('LICENSE') { into 'META-INF' }
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+def releaseJarFile = tasks.named('jar', Jar).flatMap { it.archiveFile }
+def verifyReleaseJar = tasks.register('verifyReleaseJar') {
+    group = 'verification'
+    description = 'Checks release identity and exclusion of development/test code.'
+    dependsOn tasks.named('jar')
+    inputs.file(releaseJarFile)
+    doLast {
+        def archive = new java.util.zip.ZipFile(releaseJarFile.get().asFile)
+        try {
+            def names = archive.entries().collect { it.name }
+            def forbidden = ['fr/lkdm/homecore/development/', 'fr/lkdm/homecore/example/',
+                             'fr/lkdm/homecore/verification/', 'org/junit/']
+            if (names.any { name -> forbidden.any { prefix -> name.startsWith(prefix) } }) {
+                throw new GradleException('Development or test classes found in release JAR.')
+            }
+            for (def entry : ['fr/lkdm/homecore/HomeCore.class', 'fr/lkdm/homecore/api/DashboardAPI.class',
+                             'META-INF/neoforge.mods.toml', 'META-INF/LICENSE']) {
+                if (!names.contains(entry)) throw new GradleException("Missing release entry: ${entry}")
+            }
+            def metadata = archive.getInputStream(archive.getEntry('META-INF/neoforge.mods.toml')).withCloseable { it.getText('UTF-8') }
+            if (!metadata.contains('modId = "homecore"') || !metadata.contains('version = "1.0.0"')
+                    || metadata.contains('homecore_debug') || metadata.contains('homecore_validation')) {
+                throw new GradleException('Incorrect release metadata.')
+            }
+            logger.lifecycle('Release JAR verified: HomeCore 1.0.0; development and test code excluded.')
+        } finally {
+            archive.close()
+        }
+    }
+}
+tasks.named('check') { dependsOn verifyReleaseJar }
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs.addAll(['-Xlint:deprecation', '-Xlint:removal', '-Xlint:unchecked', '-Werror'])
+}
+
+neoForge {
+    version = project.neo_version
+    addModdingDependenciesTo sourceSets.verification
+    addModdingDependenciesTo sourceSets.examples
+    addModdingDependenciesTo sourceSets.development
+
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+        configureEach {
+            logLevel = org.slf4j.event.Level.INFO
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+        homecore_validation {
+            sourceSet(sourceSets.verification)
+        }
+        homecore_debug {
+            sourceSet(sourceSets.development)
+            sourceSet(sourceSets.examples)
+        }
+    }
+    unitTest {
+        enable()
+        testedMod = mods.homecore
+        loadedMods = [mods.homecore]
+    }
+    runs.client.loadedMods = [mods.homecore]
+    runs.server.loadedMods = [mods.homecore]
+    runs {
+        debugClient {
+            client()
+            loadedMods = [mods.homecore, mods.homecore_debug]
+            gameDirectory = file('run-debug')
+        }
+        debugServer {
+            server()
+            loadedMods = [mods.homecore, mods.homecore_debug]
+            gameDirectory = file('run-debug-server')
+            programArgument '--nogui'
+        }
+        persistence {
+            type = 'gameTestServer'
+            loadedMods = [mods.homecore, mods.homecore_validation]
+            gameDirectory = file('build/validation/persistence')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'homecore_validation'
+            systemProperty 'homecore.persistencePass', providers.gradleProperty('persistencePass').getOrElse('read')
+        }
+        networkSmoke {
+            client()
+            loadedMods = [mods.homecore, mods.homecore_validation]
+            gameDirectory = file('build/validation/network-client')
+            systemProperty 'homecore.networkSmoke', 'true'
+        }
+        debugSmoke {
+            client()
+            loadedMods = [mods.homecore, mods.homecore_validation, mods.homecore_debug]
+            gameDirectory = file('build/validation/debug-client')
+            systemProperty 'homecore.networkSmoke', 'true'
+            systemProperty 'homecore.debugSmoke', 'true'
+        }
+    }
+}
+
+// The template is expanded once for both Gradle builds and IDE runs.
+def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    def replaceProperties = [
+        minecraft_version_range: minecraft_version_range,
+        neo_version_range      : neo_version_range,
+        loader_version_range   : loader_version_range,
+        mod_id                 : mod_id,
+        mod_name               : mod_name,
+        mod_license            : mod_license,
+        mod_version            : mod_version,
+        mod_authors            : mod_authors,
+        mod_description        : mod_description
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into layout.buildDirectory.dir('generated/sources/modMetadata')
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+def networkSmokeLog = layout.buildDirectory.file('validation/network-client/logs/latest.log')
+def networkSmokeOptions = layout.buildDirectory.file('validation/network-client/options.txt')
+tasks.named('runNetworkSmoke') {
+    doFirst {
+        def options = networkSmokeOptions.get().asFile
+        if (!options.exists()) {
+            options.parentFile.mkdirs()
+            options.setText('onboardAccessibility:false\npauseOnLostFocus:false\nrenderDistance:2\nsimulationDistance:5\nmaxFps:60\n', 'UTF-8')
+        }
+    }
+    doLast {
+        def report = networkSmokeLog.get().asFile
+        def text = report.exists() ? report.getText('UTF-8') : ''
+        if (!text.contains('HOMECORE_NETWORK_SMOKE_OK') || !text.contains('HOMECORE_NETWORK_SMOKE_SHUTDOWN_OK') || text.contains('HOMECORE_NETWORK_SMOKE_FAILED')) {
+            throw new GradleException('Connected-client verification failed; inspect the network-client log.')
+        }
+    }
+}
+
+def debugSmokeLog = layout.buildDirectory.file('validation/debug-client/logs/latest.log')
+def debugSmokeOptions = layout.buildDirectory.file('validation/debug-client/options.txt')
+tasks.named('runDebugSmoke') {
+    doFirst {
+        def options = debugSmokeOptions.get().asFile
+        if (!options.exists()) {
+            options.parentFile.mkdirs()
+            options.setText('onboardAccessibility:false\npauseOnLostFocus:false\nrenderDistance:2\nsimulationDistance:5\nmaxFps:60\n', 'UTF-8')
+        }
+    }
+    doLast {
+        def report = debugSmokeLog.get().asFile
+        def text = report.exists() ? report.getText('UTF-8') : ''
+        if (!text.contains('HOMECORE_DEBUG_SMOKE_OK') || !text.contains('HOMECORE_NETWORK_SMOKE_SHUTDOWN_OK') || text.contains('HOMECORE_NETWORK_SMOKE_FAILED')) {
+            throw new GradleException('Development debug verification failed; inspect the debug-client log.')
+        }
+    }
+}
+
+def persistenceProperties = layout.buildDirectory.file('validation/persistence/server.properties')
+tasks.named('runPersistence') {
+    doFirst {
+        def properties = persistenceProperties.get().asFile
+        if (!properties.exists()) {
+            properties.parentFile.mkdirs()
+            properties.setText('', 'UTF-8')
+        }
+    }
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifactId = mod_id
+            from components.java
+        }
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

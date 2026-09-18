@@ -1,0 +1,16 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="Apache-2.0"
+
+[[mods]]
+modId="homecore_validation"
+version="1.0.0"
+displayName="HomeCore Development Validation"
+description="Development-only runtime verification. Excluded from HomeCore releases."
+
+[[dependencies.homecore_validation]]
+modId="homecore"
+type="required"
+versionRange="[1.0.0,2.0.0)"
+ordering="AFTER"
+side="BOTH"

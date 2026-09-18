@@ -13,7 +13,13 @@ public final class PayloadRegistration {
     private PayloadRegistration() { }
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("1");
+        var registrar = event.registrar("2");
+        registrar.playToServer(HomeCorePayloads.NetworkWatchRequest.TYPE, HomeCorePayloads.NetworkWatchRequest.STREAM_CODEC,
+                (payload, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer player) ServerRuntime.get(player.server).sync(player.server).watch(player, payload);
+                }));
+        registrar.playToClient(HomeCorePayloads.NetworkWatchResponse.TYPE, HomeCorePayloads.NetworkWatchResponse.STREAM_CODEC,
+                PayloadRegistration::receive);
         registrar.playToServer(HomeCorePayloads.DeviceListRequest.TYPE, HomeCorePayloads.DeviceListRequest.STREAM_CODEC,
                 (payload, context) -> context.enqueueWork(() -> {
                     if (context.player() instanceof ServerPlayer player) {

@@ -48,6 +48,10 @@ class PayloadCodecTest {
         assertEquals(listRequest, roundTrip(DeviceListRequest.STREAM_CODEC, listRequest));
         var listResponse = new DeviceListResponse(request, Optional.of(network), List.of(device), -1, ActionResult.Code.SUCCESS);
         assertEquals(listResponse, roundTrip(DeviceListResponse.STREAM_CODEC, listResponse));
+        var watchRequest = new NetworkWatchRequest(request, network);
+        assertEquals(watchRequest, roundTrip(NetworkWatchRequest.STREAM_CODEC, watchRequest));
+        var watchResponse = new NetworkWatchResponse(request, network, List.of(device), 1, false, ActionResult.Code.SUCCESS);
+        assertEquals(watchResponse, roundTrip(NetworkWatchResponse.STREAM_CODEC, watchResponse));
         var snapshot = new DeviceSnapshot(network, device, tag);
         assertEquals(snapshot, roundTrip(DeviceSnapshot.STREAM_CODEC, snapshot));
         var delta = new MetricUpdate(network, device, id, 7, WireValue.from(Long.MAX_VALUE));
@@ -62,6 +66,16 @@ class PayloadCodecTest {
         assertEquals(event, roundTrip(DeviceEventNotification.STREAM_CODEC, event));
         var unsubscribe = new Unsubscribe(network);
         assertEquals(unsubscribe, roundTrip(Unsubscribe.STREAM_CODEC, unsubscribe));
+    }
+
+    @Test void watchRosterBoundsAndTruncationAreValidated() {
+        UUID request = UUID.randomUUID(), network = UUID.randomUUID(), device = UUID.randomUUID();
+        assertThrows(IllegalArgumentException.class, () -> new NetworkWatchResponse(request, network, List.of(device, device), 2, false, ActionResult.Code.SUCCESS));
+        assertThrows(IllegalArgumentException.class, () -> new NetworkWatchResponse(request, network, List.of(device), 2, false, ActionResult.Code.SUCCESS));
+        List<UUID> ids = java.util.stream.IntStream.range(0, 129).mapToObj(index -> new UUID(0, index)).toList();
+        assertThrows(IllegalArgumentException.class, () -> new NetworkWatchResponse(request, network, ids, 129, false, ActionResult.Code.SUCCESS));
+        var capped = new NetworkWatchResponse(request, network, ids.subList(0, 128), 129, true, ActionResult.Code.SUCCESS);
+        assertEquals(capped, roundTrip(NetworkWatchResponse.STREAM_CODEC, capped));
     }
 
     @Test void itemAndFluidIdentifiersHaveSymmetricConstructionAndCodecBounds() {

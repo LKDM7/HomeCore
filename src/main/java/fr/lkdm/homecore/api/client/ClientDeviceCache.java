@@ -28,6 +28,7 @@ public final class ClientDeviceCache {
     private final Map<MetricKey, Long> baselineRevisions = new LinkedHashMap<>();
     private final ArrayDeque<CustomPacketPayload> recent = new ArrayDeque<>();
     private final Map<Long, Consumer<CustomPacketPayload>> listeners = new LinkedHashMap<>();
+    private final Map<UUID, UUID> watchedNetworks = new LinkedHashMap<>();
     private long nextListener;
     private long snapshotCount;
     private long updateCount;
@@ -75,20 +76,32 @@ public final class ClientDeviceCache {
             if (!metrics.containsKey(key) && metrics.size() >= 16384) metrics.remove(metrics.keySet().iterator().next());
             metrics.put(key, update);
             updateCount++;
+        } else if (payload instanceof HomeCorePayloads.NetworkWatchResponse response) {
+            if (response.result() == ActionResult.Code.DENIED || response.result() == ActionResult.Code.FAILED) forgetNetwork(response.networkId());
+            else if (response.result() == ActionResult.Code.SUCCESS) {
+                watchedNetworks.clear();
+                watchedNetworks.put(response.networkId(), response.requestId());
+                List.copyOf(devices.keySet()).stream()
+                        .filter(key -> !key.networkId().equals(response.networkId()) || !response.ids().contains(key.deviceId()))
+                        .forEach(this::forgetDevice);
+            }
         } else if (payload instanceof HomeCorePayloads.DeviceListResponse response) {
             if (response.result() == ActionResult.Code.DENIED || response.result() == ActionResult.Code.FAILED) response.networkId().ifPresent(this::forgetNetwork);
             else if (response.result() != ActionResult.Code.SUCCESS) { /* Rate-limited requests retain the active subscription. */ }
             else if (response.networkId().isPresent()) {
+                watchedNetworks.clear();
                 UUID network = response.networkId().orElseThrow();
                 List.copyOf(devices.keySet()).stream()
                         .filter(key -> !key.networkId().equals(network) || !response.ids().contains(key.deviceId()))
                         .forEach(this::forgetDevice);
             } else {
+                watchedNetworks.clear();
                 List.copyOf(devices.keySet()).forEach(this::forgetDevice);
                 List.copyOf(networks.keySet()).stream().filter(id -> !response.ids().contains(id)).forEach(this::forgetNetwork);
             }
         } else if (payload instanceof HomeCorePayloads.DeviceEventNotification notification) {
-            if (!devices.containsKey(new DeviceKey(notification.networkId(), notification.event().source()))) return;
+            if (!watchedNetworks.containsKey(notification.networkId())
+                    && !devices.containsKey(new DeviceKey(notification.networkId(), notification.event().source()))) return;
         } else if (!(payload instanceof HomeCorePayloads.ActionResultResponse)) {
             throw new IllegalArgumentException("Expected a HomeCore server payload");
         }
@@ -137,6 +150,7 @@ public final class ClientDeviceCache {
      * @param network network identity
      */
     public synchronized void forgetNetwork(UUID network) {
+        watchedNetworks.remove(network);
         networks.remove(network);
         List.copyOf(devices.keySet()).stream().filter(key -> key.networkId().equals(network)).forEach(this::forgetDevice);
         recent.removeIf(payload -> belongsTo(payload, network));
@@ -147,6 +161,7 @@ public final class ClientDeviceCache {
         if (payload instanceof HomeCorePayloads.MetricUpdate value) return value.networkId().equals(network);
         if (payload instanceof HomeCorePayloads.DeviceEventNotification value) return value.networkId().equals(network);
         if (payload instanceof HomeCorePayloads.DeviceListResponse value) return value.networkId().filter(network::equals).isPresent();
+        if (payload instanceof HomeCorePayloads.NetworkWatchResponse value) return value.networkId().equals(network);
         return false;
     }
     private void forgetDevice(DeviceKey key) {
@@ -162,7 +177,7 @@ public final class ClientDeviceCache {
     }
     /** Clears cached state and listeners when disconnected. */
     public synchronized void clear() {
-        devices.clear(); networks.clear(); metrics.clear(); baselineRevisions.clear(); recent.clear(); listeners.clear();
+        devices.clear(); networks.clear(); metrics.clear(); baselineRevisions.clear(); recent.clear(); listeners.clear(); watchedNetworks.clear();
         snapshotCount = 0; updateCount = 0;
     }
 }

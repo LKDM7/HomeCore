@@ -1,8 +1,8 @@
-# HomeCore 1.0.0
+# HomeCore 1.3.0
 
 API commune pour les appareils et réseaux d'une base Minecraft. HomeCore ne dépend d'aucun mod consommateur : Home Dashboard, Farm Monitor et une carte holographique peuvent utiliser ses contrats sans que HomeCore connaisse leurs implémentations.
 
-Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API : `DashboardAPI.API_VERSION = "1.0.0"`.
+Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API : `DashboardAPI.API_VERSION = "1.3.0"`.
 
 ## Construire et installer
 
@@ -13,13 +13,13 @@ Configurer `JAVA_HOME` vers un JDK 21 puis utiliser le wrapper :
 ./gradlew.bat runClient
 ```
 
-Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.0.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
+Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.3.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
 
 Pour développer un mod consommateur, publier d'abord localement HomeCore avec `./gradlew.bat publishToMavenLocal`, puis ajouter dans son projet ModDevGradle :
 
 ```groovy
 repositories { mavenLocal() }
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.0.0' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.3.0' }
 ```
 
 Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identifiant :
@@ -28,7 +28,7 @@ Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identif
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.0.0,2.0.0)"
+versionRange="[1.3.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -161,6 +161,14 @@ Définir un contrat Java et l'inscrire une fois via `DashboardAPI.capabilities()
 
 ## Client Dashboard
 
+Pour un Dashboard, utiliser `HomeCoreClient.subscribeNetwork(networkId)` : abonnement
+actif jusqu'à 128 appareils, snapshots initiaux répartis sur plusieurs ticks puis
+deltas uniquement. `NetworkWatchResponse.truncated()` signale explicitement les
+réseaux dépassant cette limite. Les changements de liste et de permissions sont
+transmis sans recharger les appareils conservés ; les événements couvrent tout le
+réseau autorisé. HomeCore 1.3.0 utilise le protocole réseau 2, requis sur les deux
+côtés. L'ancienne API paginée reste disponible.
+
 Depuis du code client uniquement, `HomeCoreClient.requestDevices(Optional.empty(), 0)` demande les réseaux visibles. Passer ensuite `Optional.of(networkId)` pour recevoir appareils, snapshots et changements. Une page contient au maximum 16 identifiants ; utiliser `nextOffset` pour continuer. Une seule page d'appareils est active par joueur.
 
 `HomeCoreClient.executeAction(networkId, deviceId, actionId, parameter)` retourne l'UUID de corrélation. `ClientDeviceCache.INSTANCE.listen(...)` observe les réponses, résultats et deltas. Fermer l'auditeur et appeler `unsubscribe(networkId)` quand le Dashboard n'en a plus besoin. La déconnexion vide état et auditeurs.
@@ -180,3 +188,11 @@ Lancer `./gradlew.bat runDebugClient`, puis utiliser `/homecore_debug` pour inst
 ```
 
 Le smoke de développement vérifie aussi la commande, l'action `set_progress` et la notification de l'événement. Les cinq valeurs initiales et les trois actions sont couvertes par les tests JUnit. Les passes de persistance utilisent le même monde isolé. Le smoke client crée un monde intégré isolé, vérifie découverte, snapshot, action, résultat et delta sans snapshot supplémentaire, puis ferme le client. Les validations effectivement réalisées sont documentées dans [VALIDATION.md](docs/VALIDATION.md).
+
+## Contraintes de liaison
+
+HomeNetworkManager.setReachabilityPolicy(id, predicate) installe une contrainte de liaison éphémère, à réinstaller au démarrage du serveur. Chaque politique doit accepter le réseau et l'appareil. isReachable vérifie l'appartenance et ces contraintes ; une exception refuse la liaison. Les listes, snapshots, deltas, événements et actions utilisent cette décision, en plus des permissions. HomeCore ne calcule pas de portée : cette logique appartient au consommateur. L'absence de politique conserve le comportement logique existant. Le protocole réseau reste 2.
+
+## Renommage
+
+HomeNetworkManager.renameNetwork(id, name) conserve l'UUID, les membres, les appareils et la date de création. Les snapshots de réseau et la sauvegarde reflètent le nouveau nom. Cette API est réservée au code serveur de confiance : un appel provenant d'un joueur doit vérifier MANAGE_NETWORK avant la mutation. Les noms doivent contenir 1 à 128 caractères et ne pas être vides.

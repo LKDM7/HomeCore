@@ -22,6 +22,32 @@ import java.util.UUID;
 public final class HomeNetworkManager {
     private final Map<UUID, HomeNetwork> networks = new LinkedHashMap<>();
     private final Runnable onChange;
+    private final Map<net.minecraft.resources.ResourceLocation, java.util.function.BiPredicate<UUID, fr.lkdm.homecore.api.device.DashboardDevice>> reachability = new LinkedHashMap<>();
+
+    /** Installs a trusted, server-thread transport constraint. All installed policies must allow
+     * access. Policies are ephemeral and must be reinstalled at server startup. Exceptions deny access.
+     * This does not replace membership or permission checks, and never mutates device status.
+     * @param id unique integration identifier
+     * @param policy network/device reachability predicate; must not mutate this manager
+     */
+    public synchronized void setReachabilityPolicy(net.minecraft.resources.ResourceLocation id,
+            java.util.function.BiPredicate<UUID, fr.lkdm.homecore.api.device.DashboardDevice> policy) {
+        reachability.put(Objects.requireNonNull(id), Objects.requireNonNull(policy));
+    }
+
+    /** Tests membership and transport constraints independently of device health.
+     * @param network network identity
+     * @param device registered device
+     * @return false for missing membership, rejected constraints or a failed policy
+     */
+    public synchronized boolean isReachable(UUID network, fr.lkdm.homecore.api.device.DashboardDevice device) {
+        HomeNetwork home = networks.get(network);
+        if (home == null || device == null || !home.devices().contains(device.id())) return false;
+        try {
+            for (var policy : reachability.values()) if (!policy.test(network, device)) return false;
+            return true;
+        } catch (RuntimeException exception) { return false; }
+    }
 
     /** Creates empty, in-memory storage. */
     public HomeNetworkManager() { this(() -> { }); }
@@ -80,6 +106,19 @@ public final class HomeNetworkManager {
      */
     public synchronized Optional<HomeNetwork> getNetwork(UUID id) { return Optional.ofNullable(networks.get(Objects.requireNonNull(id, "id"))); }
 
+    /** Renames a network without changing its identity, members or devices.
+     * Trusted server-thread API: remote callers must validate MANAGE_NETWORK first.
+     * @param id network identity
+     * @param name nonblank display name of at most 128 characters
+     * @return updated immutable network snapshot
+     */
+    public synchronized HomeNetwork renameNetwork(UUID id, String name) {
+        HomeNetwork current = require(id);
+        var renamed = new HomeNetwork(current.id(), name, current.owner(), current.members(), current.devices(), current.createdAt());
+        if (!renamed.equals(current)) { networks.put(id, renamed); onChange.run(); }
+        return renamed;
+    }
+
     /**
      * Lists networks containing a player, including owned networks.
      * @param player player identity
@@ -132,7 +171,7 @@ public final class HomeNetworkManager {
     public synchronized Set<UUID> getDevices(UUID network) { return require(network).devices(); }
 
     /**
-     * Resolves logical availability without scanning worlds or inferring distance.
+     * Resolves availability, including installed reachability constraints.
      * Only an explicitly ONLINE, registered member is connected. Missing,
      * invalid or otherwise unavailable members are offline; nonmembers are unreachable.
      *
@@ -145,9 +184,11 @@ public final class HomeNetworkManager {
     public synchronized ConnectionState connectionState(UUID network, UUID device, DeviceRegistry registry) {
         Objects.requireNonNull(device, "device"); Objects.requireNonNull(registry, "registry");
         if (!require(network).devices().contains(device)) return ConnectionState.UNREACHABLE;
-        return registry.get(device)
-                .filter(candidate -> candidate.status().state() == DeviceStatus.State.ONLINE)
-                .map(candidate -> ConnectionState.CONNECTED).orElse(ConnectionState.OFFLINE);
+        var candidate = registry.get(device);
+        if (candidate.isPresent() && !isReachable(network, candidate.orElseThrow())) return ConnectionState.UNREACHABLE;
+        return candidate
+                .filter(target -> target.status().state() == DeviceStatus.State.ONLINE)
+                .map(target -> ConnectionState.CONNECTED).orElse(ConnectionState.OFFLINE);
     }
 
     /**

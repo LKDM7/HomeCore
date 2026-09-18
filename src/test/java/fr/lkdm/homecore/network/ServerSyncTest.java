@@ -67,6 +67,25 @@ class ServerSyncTest {
         }
     }
 
+    @Test void unreachableDeviceCannotBeListedOrStreamedOnLegacyPage() {
+        var device = register(UpdatePolicy.ON_CHANGE);
+        var reachable = new java.util.concurrent.atomic.AtomicBoolean(false);
+        networks.setReachabilityPolicy(ResourceLocation.parse("test:radio"), (network, target) -> reachable.get());
+        try (var sync = sync()) {
+            subscribe(sync, player);
+            assertEquals(0, count(DeviceSnapshot.class));
+            reachable.set(true);
+            clock.addAndGet(2_000_000_000L);
+            sent.clear(); subscribe(sync, player);
+            assertEquals(1, count(DeviceSnapshot.class));
+            sent.clear(); reachable.set(false);
+            device.progress.setValue(90.0);
+            sync.tick();
+            assertEquals(0, count(MetricUpdate.class));
+            assertEquals(ActionResult.Code.FAILED, only(DeviceListResponse.class).result());
+        }
+    }
+
     @Test void policiesStatusRemovalAndRevocationAreHandled() {
         var device = register(UpdatePolicy.NORMAL);
         UUID viewer = UUID.randomUUID();
@@ -185,6 +204,48 @@ class ServerSyncTest {
         assertTrue(text.validate("x".repeat(5000)).isSuccess());
         assertEquals(4096, SnapshotEncoder.device(device).getList("actions", Tag.TAG_COMPOUND)
                 .getCompound(0).getInt("maxLength"));
+    }
+
+    @Test void longPresentationTextIsTruncatedWithoutDiscardingDeviceSchema() {
+        String longText = "x".repeat(5000);
+        var metric = DeviceMetric.builder(PROGRESS, Component.literal(longText), MetricTypes.INTEGER, 42)
+                .unit(new fr.lkdm.homecore.api.metric.Unit(ResourceLocation.parse("test:unit"), longText)).build();
+        var action = DeviceAction.button(SET, Component.literal(longText)).description(Component.literal(longText))
+                .handler((context, value) -> ActionResult.success()).build();
+        UUID identity = UUID.randomUUID();
+        DashboardDevice fixture = new DashboardDevice() {
+            public UUID id() { return identity; }
+            public ResourceLocation deviceType() { return ResourceLocation.parse("test:long_text"); }
+            public Component displayName() { return Component.literal("x".repeat(252) + "\uD83D\uDE00" + longText); }
+            public DeviceStatus status() { return DeviceStatus.ONLINE.withMessage(Component.literal(longText)); }
+            public List<DeviceMetric<?>> metrics() { return List.of(metric); }
+            public List<DeviceAction<?>> actions() { return List.of(action); }
+        };
+        var snapshot = SnapshotEncoder.device(fixture);
+        assertTrue(snapshot.getString("name").length() <= 256);
+        assertFalse(snapshot.getString("name").contains("\uD83D"), "Truncation must not split a surrogate pair");
+        assertEquals(1024, snapshot.getString("message").length());
+        assertEquals("ONLINE", snapshot.getString("status"));
+        var encodedMetric = snapshot.getList("metrics", Tag.TAG_COMPOUND).getCompound(0);
+        assertEquals(42, WireValue.fromTag(encodedMetric.getCompound("value")).value());
+        assertEquals(PROGRESS.toString(), encodedMetric.getString("id"));
+        assertEquals(256, encodedMetric.getString("name").length());
+        assertEquals(64, encodedMetric.getString("unitSymbol").length());
+        var encodedAction = snapshot.getList("actions", Tag.TAG_COMPOUND).getCompound(0);
+        assertEquals(SET.toString(), encodedAction.getString("id"));
+        assertEquals(256, encodedAction.getString("name").length());
+        assertEquals(1024, encodedAction.getString("description").length());
+    }
+
+    @Test void overlongMachineIdentifiersRemainStrictlyRejected() {
+        UUID identity = UUID.randomUUID();
+        DashboardDevice fixture = new DashboardDevice() {
+            public UUID id() { return identity; }
+            public ResourceLocation deviceType() { return ResourceLocation.parse("test:" + "x".repeat(300)); }
+            public Component displayName() { return Component.literal("Valid label"); }
+            public DeviceStatus status() { return DeviceStatus.ONLINE; }
+        };
+        assertThrows(IllegalArgumentException.class, () -> SnapshotEncoder.device(fixture));
     }
 
     @Test void deniedReplacementAndQueryLimitPreserveExistingSubscription() {

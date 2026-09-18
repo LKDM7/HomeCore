@@ -18,6 +18,25 @@ class ClientDeviceCacheTest {
     private final UUID device = UUID.randomUUID();
     private final ResourceLocation metric = ResourceLocation.fromNamespaceAndPath("homecore", "progress");
 
+    @Test void watchRosterRetainsDeltasAndAcceptsNetworkWideEvents() {
+        var cache = new ClientDeviceCache();
+        UUID request = UUID.randomUUID(), other = UUID.randomUUID();
+        cache.accept(new HomeCorePayloads.NetworkWatchResponse(request, network, List.of(device), 1, false, ActionResult.Code.SUCCESS));
+        cache.accept(snapshot(device));
+        cache.accept(new HomeCorePayloads.MetricUpdate(network, device, metric, 8, WireValue.from(8.0)));
+        cache.accept(new HomeCorePayloads.NetworkWatchResponse(request, network, List.of(device, other), 2, false, ActionResult.Code.SUCCESS));
+        assertEquals(1, cache.devices().size()); assertEquals(1, cache.metricUpdates().size());
+        var received = new AtomicInteger();
+        cache.listen(payload -> { if (payload instanceof HomeCorePayloads.DeviceEventNotification) received.incrementAndGet(); });
+        var event = new fr.lkdm.homecore.api.event.DeviceEvent(metric, other, java.time.Instant.EPOCH,
+                fr.lkdm.homecore.api.event.DeviceEvent.Severity.INFO, java.util.Map.of("message", "Outside cached roster"));
+        cache.accept(new HomeCorePayloads.DeviceEventNotification(network, event));
+        assertEquals(1, received.get());
+        cache.accept(new HomeCorePayloads.NetworkWatchResponse(request, network, List.of(), 0, false, ActionResult.Code.DENIED));
+        cache.accept(new HomeCorePayloads.DeviceEventNotification(network, event));
+        assertEquals(1, received.get()); assertTrue(cache.devices().isEmpty()); assertTrue(cache.metricUpdates().isEmpty());
+    }
+
     private HomeCorePayloads.DeviceSnapshot snapshot(UUID deviceId) {
         var definition = new CompoundTag();
         definition.putString("id", metric.toString()); definition.putLong("revision", 4);

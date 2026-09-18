@@ -23,7 +23,7 @@ import net.minecraft.resources.ResourceLocation;
  * @param value immutable value matching the type
  */
 public record WireValue(Kind kind, Object value) {
-    /** Wire value types. Ordinals are part of protocol version 1. */
+    /** Wire value types. Ordinals are unchanged between protocol versions 1 and 2. */
     public enum Kind {
         /** Boolean. */ BOOLEAN,
         /** Signed integer. */ INTEGER,

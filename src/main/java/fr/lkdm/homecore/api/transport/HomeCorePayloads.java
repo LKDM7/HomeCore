@@ -21,13 +21,57 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
-/** Version 1 transport contracts. Decoding only produces data; handlers must authenticate requests. */
+/** Version 2 transport contracts. Decoding only produces data; handlers must authenticate requests. */
 public final class HomeCorePayloads {
     /** Maximum device/network IDs per response page. */
     public static final int PAGE_SIZE = 16;
+    /** Maximum simultaneously watched devices; additional devices are explicitly reported as truncated. */
+    public static final int WATCH_SIZE = 128;
     /** Maximum encoded NBT bytes and accounted allocation for each snapshot. */
     public static final int MAX_SNAPSHOT_BYTES = 65_536;
     private HomeCorePayloads() { }
+
+    /** Opens or refreshes one bounded live network subscription, independent of GUI pagination.
+     * @param requestId correlation identity
+     * @param networkId authorized target network
+     */
+    public record NetworkWatchRequest(UUID requestId, UUID networkId) implements CustomPacketPayload {
+        /** Payload identity. */ public static final Type<NetworkWatchRequest> TYPE = typeId("network_watch_request");
+        /** Bounded codec. */ public static final StreamCodec<RegistryFriendlyByteBuf, NetworkWatchRequest> STREAM_CODEC = StreamCodec.of(
+                (buffer, packet) -> { buffer.writeUUID(packet.requestId); buffer.writeUUID(packet.networkId); },
+                buffer -> new NetworkWatchRequest(buffer.readUUID(), buffer.readUUID()));
+        /** Validates identities. */ public NetworkWatchRequest { Objects.requireNonNull(requestId); Objects.requireNonNull(networkId); }
+        @Override public Type<NetworkWatchRequest> type() { return TYPE; }
+    }
+
+    /** Authorized roster; repeated responses with the same request ID add/remove identities without resending retained devices.
+     * @param requestId active subscription identity
+     * @param networkId containing network
+     * @param ids at most WATCH_SIZE live device identities
+     * @param totalCount available device count, including identities beyond the watched limit
+     * @param truncated true when not all available devices can be watched
+     * @param result subscription outcome
+     */
+    public record NetworkWatchResponse(UUID requestId, UUID networkId, List<UUID> ids, int totalCount,
+                                       boolean truncated, ActionResult.Code result) implements CustomPacketPayload {
+        /** Payload identity. */ public static final Type<NetworkWatchResponse> TYPE = typeId("network_watch_response");
+        /** Bounded codec. */ public static final StreamCodec<RegistryFriendlyByteBuf, NetworkWatchResponse> STREAM_CODEC = StreamCodec.of(
+                (buffer, packet) -> {
+                    buffer.writeUUID(packet.requestId); buffer.writeUUID(packet.networkId); buffer.writeVarInt(packet.ids.size());
+                    packet.ids.forEach(buffer::writeUUID); buffer.writeVarInt(packet.totalCount); buffer.writeBoolean(packet.truncated); buffer.writeByte(packet.result.ordinal());
+                }, buffer -> {
+                    UUID request = buffer.readUUID(), network = buffer.readUUID();
+                    int size = count(buffer, WATCH_SIZE); List<UUID> ids = new ArrayList<>(size);
+                    for (int index = 0; index < size; index++) ids.add(buffer.readUUID());
+                    return new NetworkWatchResponse(request, network, ids, buffer.readVarInt(), bool(buffer), resultCode(buffer));
+                });
+        /** Validates the bounded roster. */ public NetworkWatchResponse {
+            Objects.requireNonNull(requestId); Objects.requireNonNull(networkId); Objects.requireNonNull(result); ids = List.copyOf(ids);
+            if (ids.size() > WATCH_SIZE || new java.util.HashSet<>(ids).size() != ids.size() || totalCount < ids.size()
+                    || totalCount > 100_000 || truncated != (totalCount > ids.size())) throw new IllegalArgumentException("Invalid watched roster");
+        }
+        @Override public Type<NetworkWatchResponse> type() { return TYPE; }
+    }
 
     /** Requests a page of network IDs when networkId is empty, otherwise a device page.
      * @param requestId correlation identity

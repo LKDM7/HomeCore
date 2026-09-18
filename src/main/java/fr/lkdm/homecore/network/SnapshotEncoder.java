@@ -28,10 +28,10 @@ public final class SnapshotEncoder {
         CompoundTag result = new CompoundTag();
         result.putUUID("id", device.id());
         put(result, "type", device.deviceType().toString(), 256);
-        put(result, "name", device.displayName().getString(), 256);
+        putText(result, "name", device.displayName().getString(), 256);
         var status = device.status();
         result.putString("status", status.state().name());
-        status.message().ifPresent(message -> put(result, "message", message.getString(), 1024));
+        status.message().ifPresent(message -> putText(result, "message", message.getString(), 1024));
         device.position().ifPresent(position -> {
             result.putInt("x", position.getX()); result.putInt("y", position.getY()); result.putInt("z", position.getZ());
         });
@@ -41,10 +41,10 @@ public final class SnapshotEncoder {
         for (var metric : schema.metrics()) {
             CompoundTag data = new CompoundTag();
             put(data, "id", metric.id().toString(), 256);
-            put(data, "name", metric.displayName().getString(), 256);
+            putText(data, "name", metric.displayName().getString(), 256);
             put(data, "type", metric.type().id().toString(), 256);
             put(data, "unit", metric.unit().id().toString(), 256);
-            put(data, "unitSymbol", metric.unit().symbol(), 64);
+            putText(data, "unitSymbol", metric.unit().symbol(), 64);
             data.putString("policy", metric.updatePolicy().name());
             metric.range().ifPresent(range -> {
                 CompoundTag bounds = new CompoundTag();
@@ -65,8 +65,8 @@ public final class SnapshotEncoder {
         for (var action : schema.actions()) {
             CompoundTag data = new CompoundTag();
             put(data, "id", action.id().toString(), 256);
-            put(data, "name", action.displayName().getString(), 256);
-            put(data, "description", action.description().getString(), 1024);
+            putText(data, "name", action.displayName().getString(), 256);
+            putText(data, "description", action.description().getString(), 1024);
             data.putString("type", action.type().name());
             put(data, "permission", action.requiredPermission().toString(), 256);
             action.min().ifPresent(value -> data.putDouble("min", value));
@@ -124,6 +124,14 @@ public final class SnapshotEncoder {
     }
 
     private static void put(CompoundTag tag, String key, String value, int max) { tag.putString(key, bounded(value, max)); }
+    private static void putText(CompoundTag tag, String key, String value, int max) {
+        if (value.length() > max) {
+            int end = max - 3;
+            if (end > 0 && Character.isHighSurrogate(value.charAt(end - 1))) end--;
+            value = value.substring(0, end) + "...";
+        }
+        tag.putString(key, value);
+    }
     private static String bounded(String value, int max) {
         if (value.length() > max) throw new IllegalArgumentException("Snapshot text exceeds limit");
         return value;

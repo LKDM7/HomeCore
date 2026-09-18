@@ -80,6 +80,7 @@ tasks.withType(Jar).configureEach {
 }
 
 def releaseJarFile = tasks.named('jar', Jar).flatMap { it.archiveFile }
+def releaseVersion = providers.gradleProperty('mod_version').get()
 def verifyReleaseJar = tasks.register('verifyReleaseJar') {
     group = 'verification'
     description = 'Checks release identity and exclusion of development/test code.'
@@ -99,11 +100,11 @@ def verifyReleaseJar = tasks.register('verifyReleaseJar') {
                 if (!names.contains(entry)) throw new GradleException("Missing release entry: ${entry}")
             }
             def metadata = archive.getInputStream(archive.getEntry('META-INF/neoforge.mods.toml')).withCloseable { it.getText('UTF-8') }
-            if (!metadata.contains('modId = "homecore"') || !metadata.contains('version = "1.0.0"')
+            if (!metadata.contains('modId = "homecore"') || !metadata.contains("version = \"${releaseVersion}\"")
                     || metadata.contains('homecore_debug') || metadata.contains('homecore_validation')) {
                 throw new GradleException('Incorrect release metadata.')
             }
-            logger.lifecycle('Release JAR verified: HomeCore 1.0.0; development and test code excluded.')
+            logger.lifecycle("Release JAR verified: HomeCore ${releaseVersion}; development and test code excluded.")
         } finally {
             archive.close()
         }

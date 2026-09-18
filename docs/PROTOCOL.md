@@ -1,7 +1,8 @@
-# HomeCore transport v1
+# HomeCore transport v2
 
 The public payloads live in `fr.lkdm.homecore.api.transport`. NeoForge negotiates
-protocol `1`. Payload registration is direction-specific and all handlers enter
+protocol `2` (HomeCore 1.1.0). Both peers must use the matching protocol; existing
+Java page APIs and value discriminants remain available. Payload registration is direction-specific and all handlers enter
 the receiving game's main thread before accessing state.
 
 ## Discovery and subscriptions
@@ -12,6 +13,21 @@ a present network requests its device IDs. `DeviceListResponse` provides the pag
 next offset and result. A page contains at most 16 identities. Network metadata or
 device snapshots follow the response. A device page subscribes the caller to that
 page only; a subsequent page replaces the previous subscription.
+
+Dashboard consumers should use `HomeCoreClient.subscribeNetwork(networkId)` for
+`NetworkWatchRequest`. `NetworkWatchResponse` returns up to 128 sorted device IDs,
+the total available count, an explicit `truncated` flag and a result. Initial
+snapshots follow over bounded server ticks. Subsequent successful responses with
+the same correlation UUID replace only the roster: retained devices keep their
+snapshots and deltas; removed IDs are pruned; only new IDs receive initial snapshots.
+A manual subscription refresh creates a new correlation UUID and streams a fresh
+snapshot. One watch or one legacy page is active per player, never both.
+
+Registered-device membership is checked every 20 ticks, and immediately when the
+immutable HomeNetwork changes. Owner/member/role metadata changes are pushed;
+VIEW permission is checked on every tick and every emitted event. Network watches
+receive events for all authorized network sources, including sources outside the
+128-device watched roster. This does not transfer extra device state.
 
 `Unsubscribe` releases a network subscription. Disconnect and server shutdown also
 release subscriptions. Client caches are cleared on disconnect. Permission
@@ -47,7 +63,10 @@ API and must never be exposed to remote players without authorization.
 
 ## Snapshot fields
 
-Names and explanations are bounded plain text on the wire. Java API definitions
+Names, descriptions, status explanations and unit symbols are truncated to their
+display bounds without splitting UTF-16 surrogate pairs. Overlong presentation
+text never discards otherwise valid metrics/actions. Machine identifiers, collection
+limits and total snapshot budgets remain strict. Text is plain on the wire. Java API definitions
 retain Minecraft Components. Device snapshot compounds contain:
 
 | Field | Meaning |
@@ -82,7 +101,7 @@ cache indexes initial revisions once and rejects unknown metrics and stale delta
 Disconnect clears snapshots, revisions, recent messages and listeners. Unsubscribe
 and permission revocation also purge recent sensitive data for that network.
 
-One device page is active per player. Successful replacement prunes the previous
+One watch or device page is active per player. Successful replacement prunes the previous
 page; a successful directory request stops device updates. Denied or failed
 requests for another network retain the prior subscription. Rate-limited requests
 do not reset it. A denied/failed active network is invalidated immediately. The
@@ -93,7 +112,11 @@ An absent delta means no new sample, not necessarily an unchanged remote machine
 ## Transport limits
 
 - Discovery: 16 identities per page, burst 2 requests and refill 2/second/player.
-- Active subscriptions: at most 1024 players, one device page each.
+- Active subscriptions: at most 1024 players, one watch or device page each.
+- Network watch: 128 devices, explicit truncation beyond the cap; at most 16
+  snapshots and 256 metric deltas per server tick/player. Delivery rotates after
+  budget exhaustion, including per-device metric cursors, so hot devices cannot
+  permanently starve later devices. The page discovery API remains capped at 16.
 - Control: burst 10 requests and refill 10/second/player, including denied attempts.
 - Snapshots: 64 KiB encoded data and decoded NBT allocation budget; at most 128
   metrics, actions, event IDs and capability IDs per device.
@@ -107,7 +130,11 @@ An absent delta means no new sample, not necessarily an unchanged remote machine
 
 Custom `MetricType` contracts are extensible within Java, but wire values use the
 closed `WireValue.Kind` representations. An unsupported custom representation or
-oversized snapshot fails discovery with FAILED; no incomplete schema is delivered.
+oversized snapshot fails legacy page discovery with FAILED. Network watches isolate
+that device behind an ERROR placeholder with empty metrics/actions and retry at
+most once per 20 ticks; healthy devices keep streaming. Repeated failure does not
+resend an unchanged placeholder. Definitions arriving for new metric IDs refresh
+the bounded schema instead of growing the revision map indefinitely.
 Longs remain exact. Java enum class names, action handlers and capability objects
 never cross the connection. Item and fluid values carry IDs and amounts, not full
 Minecraft stacks or their components. Names/descriptions are plain text snapshots;

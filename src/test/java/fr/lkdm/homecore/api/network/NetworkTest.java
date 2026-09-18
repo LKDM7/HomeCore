@@ -15,6 +15,27 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class NetworkTest {
+    @Test void renamePreservesIdentityAndOnlyMarksActualChanges() {
+        var dirty = new AtomicInteger();
+        var manager = new HomeNetworkManager(dirty::incrementAndGet);
+        var network = manager.createNetwork("Base", UUID.randomUUID());
+        UUID member = UUID.randomUUID(), device = UUID.randomUUID();
+        manager.setMember(network.id(), member, NetworkRole.VIEWER);
+        manager.addDevice(network.id(), device);
+        var before = manager.getNetwork(network.id()).orElseThrow();
+        int changes = dirty.get();
+        var renamed = manager.renameNetwork(network.id(), "Entrepôt principal");
+        assertEquals("Entrepôt principal", renamed.name());
+        assertEquals(before.id(), renamed.id()); assertEquals(before.owner(), renamed.owner());
+        assertEquals(before.members(), renamed.members()); assertEquals(before.devices(), renamed.devices());
+        assertEquals(before.createdAt(), renamed.createdAt());
+        assertEquals(changes + 1, dirty.get());
+        manager.renameNetwork(network.id(), renamed.name());
+        assertEquals(changes + 1, dirty.get());
+        assertThrows(IllegalArgumentException.class, () -> manager.renameNetwork(network.id(), " "));
+        assertThrows(IllegalArgumentException.class, () -> manager.renameNetwork(network.id(), "x".repeat(129)));
+        assertEquals(renamed, manager.getNetwork(network.id()).orElseThrow());
+    }
     @Test void logicalConnectionRequiresMembershipLoadedDeviceAndOnlineStatus() {
         var manager = new HomeNetworkManager();
         var registry = new DeviceRegistry();

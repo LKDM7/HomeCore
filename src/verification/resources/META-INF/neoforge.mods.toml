@@ -4,13 +4,13 @@ license="Apache-2.0"
 
 [[mods]]
 modId="homecore_validation"
-version="1.0.0"
+version="1.1.0"
 displayName="HomeCore Development Validation"
 description="Development-only runtime verification. Excluded from HomeCore releases."
 
 [[dependencies.homecore_validation]]
 modId="homecore"
 type="required"
-versionRange="[1.0.0,2.0.0)"
+versionRange="[1.1.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"

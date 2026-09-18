@@ -79,7 +79,8 @@ public final class ActionExecutor {
             if (command == null) return result(ActionResult.Code.INVALID_PARAMETER);
             Permission required = Permission.fromId(command.requiredPermission()).orElse(null);
             if (!permissions.hasPermission(home, player, required)) return result(ActionResult.Code.DENIED);
-            if (target.status().state() != DeviceStatus.State.ONLINE) return result(ActionResult.Code.DEVICE_OFFLINE);
+            if (!networks.isReachable(network, target) || target.status().state() != DeviceStatus.State.ONLINE)
+                return result(ActionResult.Code.DEVICE_OFFLINE);
             Object parameter;
             try {
                 parameter = resolver.apply(command);

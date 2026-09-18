@@ -28,6 +28,7 @@ class HomeNetworkPersistenceTest {
         var network = first.manager().createNetwork("Home", owner);
         first.manager().setMember(network.id(), member, NetworkRole.VIEWER);
         first.manager().addDevice(network.id(), device);
+        first.manager().renameNetwork(network.id(), "Base principale");
         var expected = first.manager().getNetwork(network.id()).orElseThrow();
         assertTrue(first.isDirty());
         save(firstStorage);
@@ -42,10 +43,12 @@ class HomeNetworkPersistenceTest {
         assertEquals(1, second.manager().getNetworksForPlayer(member).size());
         second.manager().removeDevice(network.id(), device);
         second.manager().setMember(network.id(), member, NetworkRole.ADMIN);
+        second.manager().renameNetwork(network.id(), "Entrepôt");
         save(secondStorage);
 
         var third = HomeNetworkSavedData.get(storage());
         assertTrue(third.manager().getDevices(network.id()).isEmpty());
+        assertEquals("Entrepôt", third.manager().getNetwork(network.id()).orElseThrow().name());
         assertEquals(NetworkRole.ADMIN, third.manager().getNetwork(network.id()).orElseThrow().members().get(member));
         assertEquals(network.createdAt(), third.manager().getNetwork(network.id()).orElseThrow().createdAt());
     }

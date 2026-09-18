@@ -29,6 +29,16 @@ public final class HomeCoreClient {
         PacketDistributor.sendToServer(new HomeCorePayloads.DeviceListRequest(request, network, offset));
         return request;
     }
+    /** Starts or explicitly refreshes a live network watch of up to 128 devices. Initial snapshots are streamed over bounded server ticks.
+     * @param network target network
+     * @return correlation identity, also used for subsequent roster changes and revocation
+     */
+    public static UUID subscribeNetwork(UUID network) {
+        requireConnection();
+        UUID request = UUID.randomUUID();
+        PacketDistributor.sendToServer(new HomeCorePayloads.NetworkWatchRequest(request, network));
+        return request;
+    }
     /** Requests an action using only the connected player's authenticated identity.
      * @param network containing network
      * @param device target device

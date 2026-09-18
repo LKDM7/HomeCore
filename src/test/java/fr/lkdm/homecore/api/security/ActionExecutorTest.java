@@ -46,6 +46,21 @@ class ActionExecutorTest {
         assertEquals(2, device.calls.get());
     }
 
+    @Test void transportPoliciesBlockActionsImmediatelyAndFailClosed() {
+        var executor = executor(new PermissionValidator(), 100);
+        var policy = ResourceLocation.parse("test:radio");
+        networks.setReachabilityPolicy(policy, (network, target) -> false);
+        assertEquals(ActionResult.Code.DEVICE_OFFLINE, invoke(executor, owner, 50.0));
+        assertEquals(0, device.calls.get());
+        assertEquals(fr.lkdm.homecore.api.network.ConnectionState.UNREACHABLE,
+                networks.connectionState(home.id(), device.id(), devices));
+        networks.setReachabilityPolicy(policy, (network, target) -> true);
+        assertEquals(ActionResult.Code.SUCCESS, invoke(executor, owner, 50.0));
+        networks.setReachabilityPolicy(policy, (network, target) -> { throw new IllegalStateException("Broken constraint"); });
+        assertEquals(ActionResult.Code.DEVICE_OFFLINE, invoke(executor, owner, 50.0));
+        assertEquals(1, device.calls.get());
+    }
+
     @Test void customPolicyAndRevokedMembershipAreRespectedImmediately() {
         var restricted = executor(new PermissionValidator(Map.of(NetworkRole.MEMBER, Set.of(Permission.VIEW))), 100);
         assertEquals(ActionResult.Code.DENIED, invoke(restricted, member, 50.0));

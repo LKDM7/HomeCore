@@ -154,3 +154,17 @@ verification and JUnit classes are absent; mod metadata and license are present.
 No Dashboard UI, radio-range simulation, full inventory/energy subsystem or
 consumer mod implementation is included; these were outside the requested core.
 No load benchmark or compatibility test with third-party mods is claimed.
+# Validation complémentaire : transport réseau 1.1.0
+
+`./gradlew.bat build test` a réussi après l'ajout du protocole 2 et de l'abonnement
+réseau borné. Les nouveaux tests couvrent 100 appareils actifs, 400 changements de
+Metrics, les budgets de snapshots/deltas, 128 appareils produisant chacun 32 Metrics
+en continu sans famine, la suppression et l'ajout d'appareils, l'isolation d'un
+provider défaillant et sa récupération, la révocation des permissions, les événements
+au-delà des 128 appareils suivis, la conservation des deltas en cache et les codecs.
+Le contrôle d'archive vérifie désormais la version du projet et a validé le JAR
+`homecore-1.1.0.jar`. Les résultats 1.0.0 ci-dessous sont conservés comme historique.
+
+## Version 1.3.0 — liaison et noms
+
+Build complet réussi le 19 septembre 2026 : 89 tests unitaires. Les nouveaux tests couvrent les contraintes de liaison côté actions et synchronisation, le retour des appareils joignables, le renommage sans changement d'identité et la conservation du nouveau nom après sauvegarde disque et rechargement successif. Journal local : build/network-names-validation.log.

@@ -1,5 +1,7 @@
 package fr.lkdm.homecore.network;
 
+import static fr.lkdm.homecore.api.transport.HomeCorePayloads.WATCH_SIZE;
+
 import fr.lkdm.homecore.api.action.ActionResult;
 import fr.lkdm.homecore.api.device.DashboardDevice;
 import fr.lkdm.homecore.api.device.DeviceStatus;
@@ -20,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,7 +40,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-/** Server-thread snapshot and delta delivery for one bounded page per connected player. */
+/** Server-thread snapshot/delta delivery for one bounded network watch or legacy page per connected player. */
 public final class ServerSync implements AutoCloseable {
     private static final int PAGE_SIZE = 16;
     private static final int MAX_SUBSCRIPTIONS = 1024;
@@ -52,6 +55,7 @@ public final class ServerSync implements AutoCloseable {
     private final RateLimiter queries;
     private final RateLimiter eventLimit;
     private final Map<UUID, Page> subscriptions = new HashMap<>();
+    private final Map<UUID, Watch> watches = new HashMap<>();
     private final DeviceEventBus.Subscription eventSubscription;
     private long tick;
     private boolean closed;
@@ -85,11 +89,59 @@ public final class ServerSync implements AutoCloseable {
 
     public void request(ServerPlayer player, DeviceListRequest request) { request(player.getUUID(), request); }
     public void execute(ServerPlayer player, ExecuteActionRequest request) { execute(player.getUUID(), request); }
+    public void watch(ServerPlayer player, NetworkWatchRequest request) { watch(player.getUUID(), request); }
 
     public void unsubscribe(ServerPlayer player, Unsubscribe request) {
         checkThread();
         Page page = subscriptions.get(player.getUUID());
         if (page != null && page.network.equals(request.networkId())) subscriptions.remove(player.getUUID());
+        Watch watch = watches.get(player.getUUID());
+        if (watch != null && watch.network.equals(request.networkId())) watches.remove(player.getUUID());
+    }
+
+    void watch(UUID player, NetworkWatchRequest request) {
+        checkThread();
+        if (!online.test(player)) return;
+        if (!queries.tryAcquire(player)) { watchResult(player, request, ActionResult.Code.RATE_LIMITED); return; }
+        HomeNetwork network = networks.getNetwork(request.networkId()).orElse(null);
+        if (!permissions.hasPermission(network, player, Permission.VIEW)) {
+            Watch previous = watches.get(player);
+            if (previous != null && previous.network.equals(request.networkId())) watches.remove(player);
+            watchResult(player, request, ActionResult.Code.DENIED);
+            return;
+        }
+        if (subscriptions.size() + watches.size() >= MAX_SUBSCRIPTIONS && !watches.containsKey(player) && !subscriptions.containsKey(player)) {
+            watchResult(player, request, ActionResult.Code.RATE_LIMITED); return;
+        }
+        Watch watch = new Watch(request.networkId(), request.requestId());
+        subscriptions.remove(player);
+        watches.put(player, watch);
+        refreshRoster(player, watch, network, true);
+        send(player, networkSnapshot(network, player));
+        watch.lastNetwork = network;
+    }
+
+    private void watchResult(UUID player, NetworkWatchRequest request, ActionResult.Code result) {
+        send(player, new NetworkWatchResponse(request.requestId(), request.networkId(), List.of(), 0, false, result));
+    }
+
+    private void refreshRoster(UUID player, Watch watch, HomeNetwork network, boolean initial) {
+        List<UUID> available = network.devices().stream().sorted().filter(id -> {
+            try { return devices.get(id).filter(device -> networks.isReachable(network.id(), device)).isPresent(); }
+            catch (RuntimeException exception) { return true; } // A broken provider remains visible as an ERROR placeholder.
+        }).toList();
+        List<UUID> ids = List.copyOf(available.subList(0, Math.min(WATCH_SIZE, available.size())));
+        if (initial || !ids.equals(watch.ids) || available.size() != watch.totalCount) {
+            watch.ids = ids;
+            watch.totalCount = available.size();
+            watch.devices.keySet().retainAll(ids);
+            watch.pending.retainAll(ids);
+            watch.failedUntil.keySet().retainAll(ids);
+            watch.metricCursors.keySet().retainAll(ids);
+            for (UUID id : ids) if (!watch.devices.containsKey(id)) watch.pending.add(id);
+            send(player, new NetworkWatchResponse(watch.request, watch.network, ids, available.size(), available.size() > ids.size(), ActionResult.Code.SUCCESS));
+        }
+        watch.nextRosterTick = tick + 20;
     }
 
     void request(UUID player, DeviceListRequest request) {
@@ -114,6 +166,7 @@ public final class ServerSync implements AutoCloseable {
                 List<HomeNetworkSnapshot> snapshots = new ArrayList<>();
                 for (HomeNetwork network : page) snapshots.add(networkSnapshot(network, player));
                 subscriptions.remove(player);
+                watches.remove(player);
                 respond(player, request, page.stream().map(HomeNetwork::id).toList(), end < accessible.size() ? end : -1, ActionResult.Code.SUCCESS);
                 snapshots.forEach(snapshot -> send(player, snapshot));
                 return;
@@ -125,12 +178,12 @@ public final class ServerSync implements AutoCloseable {
                 respond(player, request, List.of(), -1, ActionResult.Code.DENIED);
                 return;
             }
-            if (subscriptions.size() >= MAX_SUBSCRIPTIONS && !subscriptions.containsKey(player)) {
+            if (subscriptions.size() + watches.size() >= MAX_SUBSCRIPTIONS && !subscriptions.containsKey(player) && !watches.containsKey(player)) {
                 respond(player, request, List.of(), -1, ActionResult.Code.RATE_LIMITED);
                 return;
             }
             List<UUID> available = network.devices().stream().sorted()
-                    .filter(id -> devices.get(id).isPresent()).toList();
+                    .filter(id -> devices.get(id).filter(device -> networks.isReachable(network.id(), device)).isPresent()).toList();
             int start = Math.min(request.offset(), available.size());
             int end = Math.min(start + PAGE_SIZE, available.size());
             List<UUID> ids = List.copyOf(available.subList(start, end));
@@ -144,6 +197,7 @@ public final class ServerSync implements AutoCloseable {
             }
             HomeNetworkSnapshot summary = networkSnapshot(network, player);
             subscriptions.put(player, page);
+            watches.remove(player);
             respond(player, request, ids, end < available.size() ? end : -1, ActionResult.Code.SUCCESS);
             send(player, summary);
             snapshots.forEach(snapshot -> send(player, snapshot));
@@ -179,7 +233,7 @@ public final class ServerSync implements AutoCloseable {
                 }
                 boolean removed = false;
                 for (UUID id : page.ids) {
-                    if (!network.devices().contains(id) || devices.get(id).isEmpty()) { removed = true; break; }
+                    if (!network.devices().contains(id) || devices.get(id).filter(device -> networks.isReachable(network.id(), device)).isEmpty()) { removed = true; break; }
                 }
                 if (removed) {
                     invalidate(player, page, ActionResult.Code.FAILED);
@@ -191,6 +245,104 @@ public final class ServerSync implements AutoCloseable {
                 iterator.remove();
             }
         }
+        Iterator<Map.Entry<UUID, Watch>> watchers = watches.entrySet().iterator();
+        while (watchers.hasNext()) {
+            var entry = watchers.next();
+            UUID player = entry.getKey(); Watch watch = entry.getValue();
+            watch.eventsThisTick = 0;
+            if (!online.test(player)) { watchers.remove(); continue; }
+            HomeNetwork network = networks.getNetwork(watch.network).orElse(null);
+            if (!permissions.hasPermission(network, player, Permission.VIEW)) {
+                watchResult(player, new NetworkWatchRequest(watch.request, watch.network), ActionResult.Code.DENIED);
+                watchers.remove(); continue;
+            }
+            if (network != watch.lastNetwork || tick >= watch.nextRosterTick) refreshRoster(player, watch, network, false);
+            if (network != watch.lastNetwork) {
+                send(player, networkSnapshot(network, player));
+                watch.lastNetwork = network;
+            }
+            WatchBudget budget = new WatchBudget();
+            for (UUID id : List.copyOf(watch.pending)) {
+                if (budget.snapshots == 0) break;
+                watchSnapshot(player, watch, id, budget);
+            }
+            int size = watch.ids.size();
+            int resume = -1;
+            for (int index = 0; index < size; index++) {
+                UUID id = watch.ids.get((index + watch.cursor) % size);
+                if (watch.pending.contains(id) || watch.failedUntil.getOrDefault(id, 0L) > tick) continue;
+                try {
+                    DashboardDevice device = devices.get(id).orElse(null);
+                    if (device == null || !networks.isReachable(watch.network, device)) { watch.nextRosterTick = tick; continue; }
+                    Tracked tracked = watch.devices.get(id);
+                    if (tracked == null || watch.failedUntil.containsKey(id)
+                            || tracked.device != device || !tracked.status.equals(device.status())) {
+                        if (budget.snapshots > 0) watchSnapshot(player, watch, id, budget);
+                        continue;
+                    }
+                    if (budget.deltas == 0) continue;
+                    var metrics = device.metrics();
+                    if (metrics.size() > 128) throw new IllegalArgumentException("Device metric limit exceeded");
+                    int metricStart = metrics.isEmpty() ? 0 : watch.metricCursors.getOrDefault(id, 0) % metrics.size();
+                    for (int metricIndex = 0; metricIndex < metrics.size(); metricIndex++) {
+                        if (budget.deltas == 0) break;
+                        int metricPosition = (metricStart + metricIndex) % metrics.size();
+                        var metric = metrics.get(metricPosition);
+                        watch.metricCursors.put(id, (metricPosition + 1) % metrics.size());
+                        int interval = interval(metric.updatePolicy());
+                        if (interval == 0 || tick % interval != 0) continue;
+                        var value = metric.snapshot();
+                        Long previous = tracked.revisions.get(metric.id());
+                        if (previous == null) {
+                            // A provider changing its declared metric IDs cannot grow the revision map without bounds.
+                            if (budget.snapshots > 0) watchSnapshot(player, watch, id, budget);
+                            break;
+                        }
+                        if (previous.longValue() != value.revision()) {
+                            send(player, new MetricUpdate(watch.network, id, metric.id(), value.revision(), WireValue.from(value.value())));
+                            tracked.revisions.put(metric.id(), value.revision());
+                            budget.deltas--;
+                        }
+                    }
+                    if (budget.deltas == 0 && resume < 0) resume = (watch.cursor + index + 1) % size;
+                } catch (RuntimeException exception) {
+                    if (budget.snapshots > 0) watchFallback(player, watch, id, budget);
+                    else watch.pending.add(id);
+                }
+            }
+            if (size > 0) watch.cursor = resume >= 0 ? resume : (watch.cursor + 1) % size;
+        }
+    }
+
+    private void watchSnapshot(UUID player, Watch watch, UUID id, WatchBudget budget) {
+        try {
+            DashboardDevice device = devices.get(id).orElse(null);
+            if (device == null || !networks.isReachable(watch.network, device)) { watch.nextRosterTick = tick; watch.pending.remove(id); return; }
+            CompoundTag snapshot = SnapshotEncoder.device(device);
+            Tracked tracked = tracked(device, snapshot);
+            watch.devices.put(id, tracked);
+            watch.failedUntil.remove(id);
+            watch.metricCursors.remove(id);
+            watch.pending.remove(id);
+            budget.snapshots--;
+            send(player, new DeviceSnapshot(watch.network, id, snapshot));
+        } catch (RuntimeException exception) { watchFallback(player, watch, id, budget); }
+    }
+
+    private void watchFallback(UUID player, Watch watch, UUID id, WatchBudget budget) {
+        boolean alreadyFailed = watch.failedUntil.containsKey(id);
+        watch.failedUntil.put(id, tick + 20);
+        watch.pending.remove(id);
+        if (alreadyFailed && watch.devices.containsKey(id)) return;
+        CompoundTag snapshot = new CompoundTag();
+        snapshot.putUUID("id", id);
+        snapshot.putString("name", "Unavailable device " + id.toString().substring(0, 8));
+        snapshot.putString("type", "homecore:unavailable");
+        snapshot.putString("status", "ERROR");
+        snapshot.putString("message", "Device metadata is unavailable");
+        watch.devices.put(id, new Tracked(null, DeviceStatus.ERROR, new HashMap<>()));
+        budget.snapshots--;
+        send(player, new DeviceSnapshot(watch.network, id, snapshot));
     }
 
     private void update(UUID player, Page page, UUID id, DashboardDevice device) {
@@ -228,17 +380,27 @@ public final class ServerSync implements AutoCloseable {
             Page page = entry.getValue();
             if (!online.test(player) || !page.devices.containsKey(event.source()) || page.eventsThisTick >= EVENTS_PER_TICK) continue;
             HomeNetwork network = networks.getNetwork(page.network).orElse(null);
-            if (network == null || !network.devices().contains(event.source())
+            if (network == null || !networks.isReachable(network.id(), source)
                     || !permissions.hasPermission(network, player, Permission.VIEW)) continue;
             if (!eventLimit.tryAcquire(player)) continue;
             page.eventsThisTick++;
             send(player, new DeviceEventNotification(page.network, event));
+        }
+        for (var entry : watches.entrySet()) {
+            UUID player = entry.getKey(); Watch watch = entry.getValue();
+            if (!online.test(player) || watch.eventsThisTick >= EVENTS_PER_TICK) continue;
+            HomeNetwork network = networks.getNetwork(watch.network).orElse(null);
+            if (network == null || !networks.isReachable(network.id(), source)
+                    || !permissions.hasPermission(network, player, Permission.VIEW) || !eventLimit.tryAcquire(player)) continue;
+            watch.eventsThisTick++;
+            send(player, new DeviceEventNotification(watch.network, event));
         }
     }
 
     public void playerLeft(UUID player) {
         checkThread();
         subscriptions.remove(player);
+        watches.remove(player);
         // Keep request tokens until natural expiry: reconnect must not reset the budget.
     }
 
@@ -248,6 +410,7 @@ public final class ServerSync implements AutoCloseable {
         closed = true;
         eventSubscription.close();
         subscriptions.clear();
+        watches.clear();
         queries.clear();
         eventLimit.clear();
     }
@@ -298,4 +461,23 @@ public final class ServerSync implements AutoCloseable {
         Page(UUID network, UUID request, List<UUID> ids) { this.network = network; this.request = request; this.ids = ids; }
     }
     private record Tracked(DashboardDevice device, DeviceStatus status, Map<ResourceLocation, Long> revisions) { }
+    private static final class WatchBudget {
+        int snapshots = 16;
+        int deltas = 256;
+    }
+    private static final class Watch {
+        final UUID network;
+        final UUID request;
+        List<UUID> ids = List.of();
+        int totalCount;
+        final Map<UUID, Tracked> devices = new LinkedHashMap<>();
+        final LinkedHashSet<UUID> pending = new LinkedHashSet<>();
+        final Map<UUID, Long> failedUntil = new HashMap<>();
+        final Map<UUID, Integer> metricCursors = new HashMap<>();
+        HomeNetwork lastNetwork;
+        long nextRosterTick;
+        int eventsThisTick;
+        int cursor;
+        Watch(UUID network, UUID request) { this.network = network; this.request = request; }
+    }
 }

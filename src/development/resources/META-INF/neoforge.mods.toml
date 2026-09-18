@@ -4,7 +4,7 @@ license = "Apache-2.0"
 
 [[mods]]
 modId = "homecore_debug"
-version = "1.0.0"
+version = "1.1.0"
 displayName = "HomeCore Development Device"
 authors = "LKDM"
 description = '''Development-only HomeCore example device and setup command.'''
@@ -12,7 +12,7 @@ description = '''Development-only HomeCore example device and setup command.'''
 [[dependencies.homecore_debug]]
 modId = "homecore"
 type = "required"
-versionRange = "[1.0.0,2.0.0)"
+versionRange = "[1.1.0,2.0.0)"
 ordering = "AFTER"
 side = "BOTH"
 

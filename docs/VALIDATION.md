@@ -227,3 +227,18 @@ Les captures locales incluent `workbench-world.png`, l'interface, le manque de
 matériaux, MAX et les étapes des deux recettes.
 Les parcours clients anglais et français réussissent ; le dernier build vérifie
 également le modèle corrigé pour éviter le chevauchement des faces de la bordure.
+
+## Version 1.6.1 — harmonie visuelle avec HomeLink Farm
+
+La palette, les panneaux encastrés et les boutons biseautés suivent HomeLink Farm
+1.0.0 (révision `87f744d`). Les deux textures d'acier sont intégrées sans modification,
+avec attribution dans `META-INF/NOTICE`. Les dimensions des quatre modèles et les
+interactions restent identiques ; aucune dépendance envers Farm n'est ajoutée.
+
+`build runWorkbenchSmoke -PworkbenchLanguage=fr_fr` puis `runWorkbenchSmoke`
+réussissent le 25 septembre 2026. Les 101 tests unitaires passent sans erreur.
+Les clients français et anglais fabriquent chacun les deux lots de 64, vérifient
+MAX, les ressources insuffisantes, le glisser-déposer, le clic-clic et la sortie.
+Les 48 variantes et le modèle d'item passent le chargement réel de Minecraft.
+Les captures du modèle en jeu et de l'interface ont été examinées. Le contrôle
+du JAR vérifie également les textures d'acier et leur attribution.

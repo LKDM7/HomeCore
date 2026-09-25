@@ -1,0 +1,9 @@
+HomeCore
+
+The device_steel.png and device_steel_dark.png textures are reproduced unchanged
+from HomeLink Farm by LKDM7, revision 87f744d251c948dedb800d71d61ca6fd07b8598f.
+Source: https://github.com/LKDM7/HomeLink-Farm
+Licensed under the Apache License, Version 2.0 (see META-INF/LICENSE).
+
+The electronics workbench interface uses the HomeLink Farm visual palette and
+industrial framing conventions, adapted to HomeCore's existing layout.

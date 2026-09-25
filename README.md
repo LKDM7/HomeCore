@@ -1,4 +1,4 @@
-# HomeCore 1.6.0
+# HomeCore 1.6.1
 
 API commune pour les appareils et réseaux d'une base Minecraft. HomeCore ne dépend d'aucun mod consommateur : Home Dashboard, Farm Monitor et une carte holographique peuvent utiliser ses contrats sans que HomeCore connaisse leurs implémentations.
 
@@ -13,13 +13,13 @@ Configurer `JAVA_HOME` vers un JDK 21 puis utiliser le wrapper :
 ./gradlew.bat runClient
 ```
 
-Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.6.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
+Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.6.1.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
 
 Pour développer un mod consommateur, publier d'abord localement HomeCore avec `./gradlew.bat publishToMavenLocal`, puis ajouter dans son projet ModDevGradle :
 
 ```groovy
 repositories { mavenLocal() }
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.6.0' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.6.1' }
 ```
 
 Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identifiant :
@@ -28,7 +28,7 @@ Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identif
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.6.0,2.0.0)"
+versionRange="[1.6.1,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -58,6 +58,8 @@ P P P    P = Any Planks
 ```
 
 The workbench occupies two adjacent blocks, with a continuous countertop and one shared inventory. Leave both spaces clear when placing it. Either half opens the same interface; breaking either half recovers one workbench and its contents in survival. Existing single-block workbenches remain usable with their saved contents; break and replace them to adopt the wider shape.
+
+Its steel frame, recessed interface panels and warm metallic accents follow HomeLink Farm's visual style. The shared steel textures are bundled with HomeCore; HomeLink Farm is not required.
 
 Place materials in the nine input slots grouped on the left, select a component directly from its icon tab and choose the number of **finished items** (up to 64). Quantities follow the recipe yield: circuit boards advance in pairs; microprocessors advance individually. Quick quantities and a MAX button simplify batch selection. Ingredient icons show available and required counts before assembly. Output storage stays visible alongside the material grid.
 
@@ -200,7 +202,7 @@ actif jusqu'à 128 appareils, snapshots initiaux répartis sur plusieurs ticks p
 deltas uniquement. `NetworkWatchResponse.truncated()` signale explicitement les
 réseaux dépassant cette limite. Les changements de liste et de permissions sont
 transmis sans recharger les appareils conservés ; les événements couvrent tout le
-réseau autorisé. HomeCore 1.6.0 utilise le protocole réseau 2, requis sur les deux
+réseau autorisé. HomeCore 1.6.1 utilise le protocole réseau 2, requis sur les deux
 côtés. L'ancienne API paginée reste disponible.
 
 Depuis du code client uniquement, `HomeCoreClient.requestDevices(Optional.empty(), 0)` demande les réseaux visibles. Passer ensuite `Optional.of(networkId)` pour recevoir appareils, snapshots et changements. Une page contient au maximum 16 identifiants ; utiliser `nextOffset` pour continuer. Une seule page d'appareils est active par joueur.

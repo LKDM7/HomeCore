@@ -117,7 +117,9 @@ def verifyReleaseJar = tasks.register('verifyReleaseJar') {
                              'data/homecore/recipe/electronics_workbench.json',
                              'data/homecore/loot_table/blocks/electronics_workbench.json',
                              'data/homecore/advancement/recipes/decorations/electronics_workbench.json',
-                             'META-INF/neoforge.mods.toml', 'META-INF/LICENSE']) {
+                             'assets/homecore/textures/block/device_steel.png',
+                             'assets/homecore/textures/block/device_steel_dark.png',
+                             'META-INF/NOTICE', 'META-INF/neoforge.mods.toml', 'META-INF/LICENSE']) {
                 if (!names.contains(entry)) throw new GradleException("Missing release entry: ${entry}")
             }
             def metadata = archive.getInputStream(archive.getEntry('META-INF/neoforge.mods.toml')).withCloseable { it.getText('UTF-8') }

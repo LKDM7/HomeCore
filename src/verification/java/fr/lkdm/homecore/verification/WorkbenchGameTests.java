@@ -231,6 +231,11 @@ public final class WorkbenchGameTests {
         if (pass.equals("write")) {
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
             Fixture fixture = fixture(helper, pos);
+            var left = fixture.block.getBlockState().setValue(fr.lkdm.homecore.workbench.ElectronicsBlock.PART,
+                    fr.lkdm.homecore.workbench.ElectronicsBlock.Part.LEFT);
+            level.setBlock(pos, left, 3);
+            HomeCoreWorkbench.BLOCK.get().setPlacedBy(level, pos, left, fixture.player,
+                    new ItemStack(HomeCoreItems.ELECTRONICS_WORKBENCH.get()));
             stockBoards(fixture, 8);
             fixture.block.setItem(8, new ItemStack(Items.STONE, 7));
             helper.assertTrue(fixture.start(16), "Persistent production reservation rejected");
@@ -242,6 +247,13 @@ public final class WorkbenchGameTests {
             helper.assertTrue(level.getBlockEntity(pos) instanceof ElectronicsBlockEntity,
                     "Workbench block entity was not persisted across server processes");
             ElectronicsBlockEntity block = (ElectronicsBlockEntity) level.getBlockEntity(pos);
+            helper.assertTrue(level.getBlockState(pos).getValue(fr.lkdm.homecore.workbench.ElectronicsBlock.PART)
+                            == fr.lkdm.homecore.workbench.ElectronicsBlock.Part.LEFT
+                    && level.getBlockState(pos.east()).getValue(fr.lkdm.homecore.workbench.ElectronicsBlock.PART)
+                            == fr.lkdm.homecore.workbench.ElectronicsBlock.Part.RIGHT
+                    && level.getBlockEntity(pos.east()) == null
+                    && fr.lkdm.homecore.workbench.ElectronicsBlock.workbench(level, pos.east()) == block,
+                    "Two-block structure did not persist as a single inventory");
             helper.assertTrue(block.phase() == 2, "Saved prototype did not resume in production phase");
             helper.assertTrue(block.saveWithoutMetadata(level.registryAccess()).getCompound("Assembly").getInt("Progress") >= 1,
                     "Saved production progress was lost");
@@ -253,6 +265,8 @@ public final class WorkbenchGameTests {
                     "Restart changed consumed materials or unrelated stored items");
             for (int tick = 0; tick < 80; tick++) ElectronicsBlockEntity.tick(level, pos, block.getBlockState(), block);
             helper.assertTrue(block.getItem(9).getCount() == 16, "Restarted production yielded twice");
+            helper.assertTrue(level.getBlockState(pos.east()).getValue(fr.lkdm.homecore.workbench.ElectronicsBlock.STAGE) == 3,
+                    "Restored right half did not reflect completed production");
             com.mojang.logging.LogUtils.getLogger().info("HOMECORE_WORKBENCH_PERSISTENCE_READ_OK position={}", pos);
         } else {
             helper.fail("Set homecore.persistencePass to write or read");

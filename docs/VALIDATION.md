@@ -200,3 +200,30 @@ Les marqueurs `HOMECORE_WORKBENCH_SCREEN_OK`, `HOMECORE_WORKBENCH_MODELS_OK`
 et `HOMECORE_NETWORK_SMOKE_OK` sont exigés par la tâche client. Le transport
 Device/Metric/Action existant reste couvert par le même client connecté.
 Les tests ne constituent pas un benchmark ni une validation avec des modpacks tiers.
+
+## Version 1.6.0 — ergonomie et établi sur deux blocs
+
+La validation du 25 septembre 2026 couvre la grille de matériaux latérale,
+les onglets de recettes, les quantités finales, MAX et la palette d'assemblage.
+Le build et ses 101 tests unitaires réussissent ; le JAR contient les nouveaux
+modèles et exclut les fixtures de développement.
+Le client vérifie qu'un lot de 64 est refusé quand les ressources n'en permettent
+que 32, que MAX choisit 32, puis que les deux composants se fabriquent par lots
+de 64 après réapprovisionnement.
+
+Douze GameTests passent dans chacune des deux exécutions `runPersistence`
+(`write`, puis `read`). Les nouveaux cas vérifient les quatre orientations,
+le refus de pose sur un bloc ou une entité, l'inventaire commun, la casse de
+chaque moitié en survie et en créatif, ainsi que les explosions. Entrées,
+réservations et résultat sont comptés après destruction. Un ancien état NBT
+sans propriété `part` reste un établi compact utilisable, et un établi voisin
+indépendant reste intact.
+
+Le redémarrage réel du serveur restaure les deux moitiés avec une seule
+BlockEntity, puis termine la production une seule fois. Le client pose l'établi
+avec son BlockItem et ouvre l'interface depuis la moitié droite. Les 48 variantes
+de bloc et le modèle d'item complet sont contrôlés après chargement par Minecraft.
+Les captures locales incluent `workbench-world.png`, l'interface, le manque de
+matériaux, MAX et les étapes des deux recettes.
+Les parcours clients anglais et français réussissent ; le dernier build vérifie
+également le modèle corrigé pour éviter le chevauchement des faces de la bordure.

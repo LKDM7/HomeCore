@@ -6,6 +6,7 @@ import fr.lkdm.homecore.workbench.ElectronicsBlock;
 import java.util.ArrayList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -27,15 +28,25 @@ public final class WorkbenchModelSmoke {
         Minecraft client = Minecraft.getInstance();
         if (client.level == null) return;
         for (Direction facing : Direction.Plane.HORIZONTAL) {
-            for (int stage = 0; stage < 4; stage++) check(client, facing, stage);
+            for (ElectronicsBlock.Part part : ElectronicsBlock.Part.values()) {
+                for (int stage = 0; stage < 4; stage++) check(client, facing, part, stage);
+            }
+        }
+        var item = client.getModelManager().getModel(new ModelResourceLocation(
+                ResourceLocation.fromNamespaceAndPath("homecore", "electronics_workbench"), "inventory"));
+        var itemQuads = item.getQuads(null, null, RandomSource.create(0), ModelData.EMPTY, null);
+        if (!item.isGui3d() || itemQuads.size() < 120
+                || itemQuads.stream().anyMatch(quad -> quad.getSprite().contents().name().getPath().contains("missingno"))) {
+            throw new IllegalStateException("Full-width workbench item model failed to bake");
         }
         checked = true;
         LogUtils.getLogger().info("HOMECORE_WORKBENCH_MODELS_OK");
     }
 
-    private static void check(Minecraft client, Direction facing, int stage) {
+    private static void check(Minecraft client, Direction facing, ElectronicsBlock.Part part, int stage) {
         var state = HomeCoreWorkbench.BLOCK.get().defaultBlockState()
-                .setValue(ElectronicsBlock.FACING, facing).setValue(ElectronicsBlock.STAGE, stage);
+                .setValue(ElectronicsBlock.FACING, facing).setValue(ElectronicsBlock.PART, part)
+                .setValue(ElectronicsBlock.STAGE, stage);
         var model = client.getBlockRenderer().getBlockModel(state);
         var quads = new ArrayList<BakedQuad>();
         quads.addAll(model.getQuads(state, null, RandomSource.create(0), ModelData.EMPTY, null));
@@ -47,7 +58,7 @@ public final class WorkbenchModelSmoke {
                 "block/electronics_workbench_front_" + stage);
         if (quads.size() < 60 || !sprites.contains(expectedFront)
                 || sprites.stream().anyMatch(sprite -> sprite.getPath().contains("missingno"))) {
-            throw new IllegalStateException("Workbench model failed: " + facing + "/" + stage
+            throw new IllegalStateException("Workbench model failed: " + facing + "/" + part + "/" + stage
                     + " (quads=" + quads.size() + ", sprites=" + sprites + ")");
         }
     }

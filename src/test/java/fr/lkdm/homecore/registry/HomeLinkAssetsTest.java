@@ -65,9 +65,11 @@ class HomeLinkAssetsTest {
     void workbenchStatesResolveModelsAndSixteenPixelTextures() throws IOException {
         JsonObject variants = json("assets/homecore/blockstates/electronics_workbench.json")
                 .getAsJsonObject("variants");
+        assertEquals(48, variants.size());
         for (String facing : new String[]{"north", "east", "south", "west"}) {
+          for (String part : new String[]{"single", "left", "right"}) {
             for (int stage = 0; stage < 4; stage++) {
-                String modelId = variants.getAsJsonObject("facing=" + facing + ",stage=" + stage)
+                String modelId = variants.getAsJsonObject("facing=" + facing + ",part=" + part + ",stage=" + stage)
                         .get("model").getAsString();
                 JsonObject model = json("assets/" + modelId.replace(":", "/models/") + ".json");
                 for (var entry : model.getAsJsonObject("textures").entrySet()) {
@@ -80,9 +82,17 @@ class HomeLinkAssetsTest {
                     }
                 }
             }
+          }
         }
-        assertEquals("homecore:block/electronics_workbench",
-                json("assets/homecore/models/item/electronics_workbench.json").get("parent").getAsString());
+        JsonObject itemModel = json("assets/homecore/models/item/electronics_workbench.json");
+        double minimumX = 32, maximumX = -16;
+        for (var element : itemModel.getAsJsonArray("elements")) {
+            JsonObject cube = element.getAsJsonObject();
+            minimumX = Math.min(minimumX, cube.getAsJsonArray("from").get(0).getAsDouble());
+            maximumX = Math.max(maximumX, cube.getAsJsonArray("to").get(0).getAsDouble());
+        }
+        assertEquals(32, maximumX - minimumX, "Inventory model must show both halves");
+        assertTrue(minimumX >= -16 && maximumX <= 32);
     }
 
     @Test
@@ -101,6 +111,23 @@ class HomeLinkAssetsTest {
                 assertTrue(fr.has(key), "Missing French label " + key);
             }
         }
+    }
+
+    @Test
+    void workbenchLootDropsOneItemFromTheOwningHalfOnly() throws IOException {
+        JsonObject loot = json("data/homecore/loot_table/blocks/electronics_workbench.json");
+        var conditions = loot.getAsJsonArray("pools").get(0).getAsJsonObject().getAsJsonArray("conditions");
+        assertEquals("minecraft:survives_explosion", conditions.get(0).getAsJsonObject().get("condition").getAsString());
+        JsonObject ownership = conditions.get(1).getAsJsonObject();
+        assertEquals("minecraft:any_of", ownership.get("condition").getAsString());
+        var owners = new java.util.HashSet<String>();
+        for (var element : ownership.getAsJsonArray("terms")) {
+            JsonObject term = element.getAsJsonObject();
+            assertEquals("minecraft:block_state_property", term.get("condition").getAsString());
+            assertEquals("homecore:electronics_workbench", term.get("block").getAsString());
+            owners.add(term.getAsJsonObject("properties").get("part").getAsString());
+        }
+        assertEquals(java.util.Set.of("single", "left"), owners);
     }
 
     private static JsonObject json(String path) throws IOException {

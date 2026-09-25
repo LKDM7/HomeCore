@@ -55,7 +55,8 @@ public final class ElectronicsMenu extends AbstractContainerMenu {
         }
         for (int slot = 0; slot < 10; slot++) {
             final int index = slot;
-            addSlot(new Slot(inventory, slot, slot == 9 ? 289 : 9 + 18 * slot, 141) {
+            addSlot(new Slot(inventory, slot, slot == 9 ? 30 : 12 + 18 * (slot % 3),
+                    slot == 9 ? 117 : 43 + 18 * (slot / 3)) {
                 @Override public boolean mayPlace(ItemStack stack) { return index < 9 && !locked(); }
                 @Override public boolean mayPickup(Player player) { return !locked(); }
             });

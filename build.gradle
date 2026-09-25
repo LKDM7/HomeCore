@@ -112,6 +112,8 @@ def verifyReleaseJar = tasks.register('verifyReleaseJar') {
                              'assets/homecore/blockstates/electronics_workbench.json',
                              'assets/homecore/models/item/electronics_workbench.json',
                              'assets/homecore/models/block/electronics_workbench.json',
+                             'assets/homecore/models/block/electronics_workbench_left.json',
+                             'assets/homecore/models/block/electronics_workbench_right.json',
                              'data/homecore/recipe/electronics_workbench.json',
                              'data/homecore/loot_table/blocks/electronics_workbench.json',
                              'data/homecore/advancement/recipes/decorations/electronics_workbench.json',

@@ -80,6 +80,7 @@ public final class ElectronicsBlockEntity extends BlockEntity implements Worldly
     }
 
     public static void tick(Level level, BlockPos pos, BlockState state, ElectronicsBlockEntity block) {
+        if (level.getGameTime() % 20 == 0) block.syncPartnerStage();
         if (block.recoverReservation) { block.refund(); return; }
         AssemblySession active = block.session;
         if (active == null) return;
@@ -164,6 +165,23 @@ public final class ElectronicsBlockEntity extends BlockEntity implements Worldly
         if (level != null && !level.isClientSide && getBlockState().getBlock() instanceof ElectronicsBlock
                 && getBlockState().getValue(ElectronicsBlock.STAGE) != phase()) {
             level.setBlock(worldPosition, getBlockState().setValue(ElectronicsBlock.STAGE, phase()), 3);
+        }
+        syncPartnerStage();
+    }
+
+    private void syncPartnerStage() {
+        if (level != null && !level.isClientSide && getBlockState().getValue(ElectronicsBlock.PART) == ElectronicsBlock.Part.LEFT) {
+            BlockPos right = worldPosition.relative(getBlockState().getValue(ElectronicsBlock.FACING).getClockWise());
+            var chunk = level.getChunkSource().getChunkNow(right.getX() >> 4, right.getZ() >> 4);
+            if (chunk != null) {
+                BlockState state = chunk.getBlockState(right);
+                if (state.getBlock() == getBlockState().getBlock()
+                        && state.getValue(ElectronicsBlock.PART) == ElectronicsBlock.Part.RIGHT
+                        && state.getValue(ElectronicsBlock.FACING) == getBlockState().getValue(ElectronicsBlock.FACING)
+                        && state.getValue(ElectronicsBlock.STAGE) != phase()) {
+                    level.setBlock(right, state.setValue(ElectronicsBlock.STAGE, phase()), 3);
+                }
+            }
         }
     }
 

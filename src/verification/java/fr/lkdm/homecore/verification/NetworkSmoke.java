@@ -126,7 +126,7 @@ public final class NetworkSmoke {
                     if (ClientDeviceCache.INSTANCE.snapshotCount() != snapshots) throw new IllegalStateException("Action resent a full snapshot");
                     LogUtils.getLogger().info("HOMECORE_NETWORK_SMOKE_OK snapshots={} deltas={} request={}", snapshots, ClientDeviceCache.INSTANCE.updateCount(), request);
                     stage = 5;
-                    shutdown(client);
+                    if (!Boolean.getBoolean("homecore.workbenchSmoke")) shutdown(client);
                 }
             }
         } catch (Throwable failure) {

@@ -19,6 +19,8 @@ public final class HomeCoreItems {
             "homelink_circuit_board", component("homelink_circuit_board"));
     public static final DeferredItem<Item> HOMELINK_MICROPROCESSOR = ITEMS.registerSimpleItem(
             "homelink_microprocessor", component("homelink_microprocessor"));
+    public static final DeferredItem<net.minecraft.world.item.BlockItem> ELECTRONICS_WORKBENCH =
+            ITEMS.registerSimpleBlockItem("electronics_workbench", HomeCoreWorkbench.BLOCK);
 
     private HomeCoreItems() {
     }

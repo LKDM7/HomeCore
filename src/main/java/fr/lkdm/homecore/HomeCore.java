@@ -15,8 +15,12 @@ public final class HomeCore {
 
     public HomeCore(net.neoforged.bus.api.IEventBus modBus) {
         HomeCoreItems.ITEMS.register(modBus);
+        fr.lkdm.homecore.registry.HomeCoreWorkbench.register(modBus);
+        fr.lkdm.homecore.registry.HomeCoreRecipes.TYPES.register(modBus);
+        fr.lkdm.homecore.registry.HomeCoreRecipes.SERIALIZERS.register(modBus);
         HomeCoreCreativeTabs.TABS.register(modBus);
         modBus.addListener(fr.lkdm.homecore.network.PayloadRegistration::register);
+        modBus.addListener(fr.lkdm.homecore.workbench.WorkbenchNetworking::register);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(this::serverStopped);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(this::serverTick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(this::playerLeft);

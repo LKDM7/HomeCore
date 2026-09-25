@@ -20,6 +20,7 @@ public final class HomeCoreCreativeTabs {
                     .displayItems((parameters, output) -> {
                         output.accept(HomeCoreItems.HOMELINK_CIRCUIT_BOARD.get());
                         output.accept(HomeCoreItems.HOMELINK_MICROPROCESSOR.get());
+                        output.accept(HomeCoreItems.ELECTRONICS_WORKBENCH.get());
                     })
                     .build());
 

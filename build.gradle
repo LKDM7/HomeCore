@@ -106,8 +106,15 @@ def verifyReleaseJar = tasks.register('verifyReleaseJar') {
                              'assets/homecore/lang/en_us.json', 'assets/homecore/lang/fr_fr.json',
                              'data/homecore/recipe/homelink_circuit_board.json',
                              'data/homecore/recipe/homelink_microprocessor.json',
-                             'data/homecore/advancement/recipes/misc/homelink_circuit_board.json',
-                             'data/homecore/advancement/recipes/misc/homelink_microprocessor.json',
+                             'fr/lkdm/homecore/workbench/ElectronicsBlockEntity.class',
+                             'fr/lkdm/homecore/workbench/client/ElectronicsScreen.class',
+                             'fr/lkdm/homecore/workbench/recipe/ElectronicsRecipe.class',
+                             'assets/homecore/blockstates/electronics_workbench.json',
+                             'assets/homecore/models/item/electronics_workbench.json',
+                             'assets/homecore/models/block/electronics_workbench.json',
+                             'data/homecore/recipe/electronics_workbench.json',
+                             'data/homecore/loot_table/blocks/electronics_workbench.json',
+                             'data/homecore/advancement/recipes/decorations/electronics_workbench.json',
                              'META-INF/neoforge.mods.toml', 'META-INF/LICENSE']) {
                 if (!names.contains(entry)) throw new GradleException("Missing release entry: ${entry}")
             }
@@ -193,6 +200,13 @@ neoForge {
             gameDirectory = file('build/validation/network-client')
             systemProperty 'homecore.networkSmoke', 'true'
         }
+        workbenchSmoke {
+            client()
+            loadedMods = [mods.homecore, mods.homecore_validation]
+            gameDirectory = file('build/validation/workbench-client')
+            systemProperty 'homecore.networkSmoke', 'true'
+            systemProperty 'homecore.workbenchSmoke', 'true'
+        }
         debugSmoke {
             client()
             loadedMods = [mods.homecore, mods.homecore_validation, mods.homecore_debug]
@@ -246,6 +260,26 @@ tasks.named('runNetworkSmoke') {
 }
 
 def debugSmokeLog = layout.buildDirectory.file('validation/debug-client/logs/latest.log')
+def workbenchSmokeDir = layout.buildDirectory.dir('validation/workbench-client')
+def workbenchLanguage = providers.gradleProperty('workbenchLanguage').getOrElse('en_us')
+tasks.named('runWorkbenchSmoke') {
+    doFirst {
+        def options = new File(workbenchSmokeDir.get().asFile, 'options.txt')
+        options.parentFile.mkdirs()
+        options.setText('onboardAccessibility:false\npauseOnLostFocus:false\nrenderDistance:2\nsimulationDistance:5\nmaxFps:60\ntutorialStep:none\nlang:' + workbenchLanguage + '\n', 'UTF-8')
+    }
+    doLast {
+        def report = new File(workbenchSmokeDir.get().asFile, 'logs/latest.log')
+        def text = report.exists() ? report.getText('UTF-8') : ''
+        if (!text.contains('HOMECORE_WORKBENCH_SCREEN_OK') || !text.contains('HOMECORE_NETWORK_SMOKE_OK')
+                || !text.contains('HOMECORE_HOMELINK_MODELS_OK') || !text.contains('HOMECORE_WORKBENCH_MODELS_OK')
+                || text.contains('_SMOKE_FAILED')
+                || text.contains('HOMECORE_WORKBENCH_SCREEN_FAILED')) {
+            throw new GradleException('Workbench connected-client verification failed; inspect the workbench-client log.')
+        }
+    }
+}
+
 def debugSmokeOptions = layout.buildDirectory.file('validation/debug-client/options.txt')
 tasks.named('runDebugSmoke') {
     doFirst {

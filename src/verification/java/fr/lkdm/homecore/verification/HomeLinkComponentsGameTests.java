@@ -3,6 +3,8 @@ package fr.lkdm.homecore.verification;
 import com.mojang.logging.LogUtils;
 import fr.lkdm.homecore.registry.HomeCoreCreativeTabs;
 import fr.lkdm.homecore.registry.HomeCoreItems;
+import fr.lkdm.homecore.registry.HomeCoreRecipes;
+import fr.lkdm.homecore.workbench.recipe.ElectronicsInput;
 import java.util.List;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -32,12 +34,6 @@ public final class HomeLinkComponentsGameTests {
         helper.assertTrue(BuiltInRegistries.CREATIVE_MODE_TAB.getKey(HomeCoreCreativeTabs.HOMECORE.get())
                         .equals(ResourceLocation.fromNamespaceAndPath("homecore", "homecore")),
                 "HomeCore creative tab was not registered");
-        for (String name : List.of("homelink_circuit_board", "homelink_microprocessor")) {
-            helper.assertTrue(helper.getLevel().getServer().getAdvancements().get(
-                            ResourceLocation.fromNamespaceAndPath("homecore", "recipes/misc/" + name)) != null,
-                    "Recipe Book advancement was not loaded: " + name);
-        }
-
         checkRecipe(helper, "homelink_circuit_board", List.of(
                 stack(Items.COPPER_INGOT), stack(Items.REDSTONE), stack(Items.COPPER_INGOT),
                 stack(Items.REDSTONE), stack(Items.QUARTZ), stack(Items.REDSTONE),
@@ -73,13 +69,17 @@ public final class HomeLinkComponentsGameTests {
     private static void checkRecipe(GameTestHelper helper, String name, List<ItemStack> ingredients,
                                     Item result, int count) {
         CraftingInput input = CraftingInput.of(3, 3, ingredients);
+        helper.assertTrue(helper.getLevel().getRecipeManager()
+                .getRecipeFor(RecipeType.CRAFTING, input, helper.getLevel()).isEmpty(),
+                "Component remains available in vanilla crafting: " + name);
+        ElectronicsInput electronics = new ElectronicsInput(ingredients);
         var recipe = helper.getLevel().getRecipeManager()
-                .getRecipeFor(RecipeType.CRAFTING, input, helper.getLevel());
-        helper.assertTrue(recipe.isPresent(), "Crafting recipe not loaded: " + name);
+                .getRecipeFor(HomeCoreRecipes.TYPE.get(), electronics, helper.getLevel());
+        helper.assertTrue(recipe.isPresent(), "Electronics recipe not loaded: " + name);
         var holder = recipe.orElseThrow();
         helper.assertTrue(holder.id().equals(ResourceLocation.fromNamespaceAndPath("homecore", name)),
                 "Wrong recipe matched: " + name);
-        ItemStack output = holder.value().assemble(input, helper.getLevel().registryAccess());
+        ItemStack output = holder.value().assemble(electronics, helper.getLevel().registryAccess());
         helper.assertTrue(output.is(result) && output.getCount() == count,
                 "Incorrect crafting output: " + name);
     }

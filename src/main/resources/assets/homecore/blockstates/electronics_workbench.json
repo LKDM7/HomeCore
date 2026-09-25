@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "facing=north,stage=0": {
+      "model": "homecore:block/electronics_workbench"
+    },
+    "facing=north,stage=1": {
+      "model": "homecore:block/electronics_workbench_1"
+    },
+    "facing=north,stage=2": {
+      "model": "homecore:block/electronics_workbench_2"
+    },
+    "facing=north,stage=3": {
+      "model": "homecore:block/electronics_workbench_3"
+    },
+    "facing=east,stage=0": {
+      "model": "homecore:block/electronics_workbench",
+      "y": 90
+    },
+    "facing=east,stage=1": {
+      "model": "homecore:block/electronics_workbench_1",
+      "y": 90
+    },
+    "facing=east,stage=2": {
+      "model": "homecore:block/electronics_workbench_2",
+      "y": 90
+    },
+    "facing=east,stage=3": {
+      "model": "homecore:block/electronics_workbench_3",
+      "y": 90
+    },
+    "facing=south,stage=0": {
+      "model": "homecore:block/electronics_workbench",
+      "y": 180
+    },
+    "facing=south,stage=1": {
+      "model": "homecore:block/electronics_workbench_1",
+      "y": 180
+    },
+    "facing=south,stage=2": {
+      "model": "homecore:block/electronics_workbench_2",
+      "y": 180
+    },
+    "facing=south,stage=3": {
+      "model": "homecore:block/electronics_workbench_3",
+      "y": 180
+    },
+    "facing=west,stage=0": {
+      "model": "homecore:block/electronics_workbench",
+      "y": 270
+    },
+    "facing=west,stage=1": {
+      "model": "homecore:block/electronics_workbench_1",
+      "y": 270
+    },
+    "facing=west,stage=2": {
+      "model": "homecore:block/electronics_workbench_2",
+      "y": 270
+    },
+    "facing=west,stage=3": {
+      "model": "homecore:block/electronics_workbench_3",
+      "y": 270
+    }
+  }
+}

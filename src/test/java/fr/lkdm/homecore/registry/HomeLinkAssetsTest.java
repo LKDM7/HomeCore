@@ -61,6 +61,48 @@ class HomeLinkAssetsTest {
         assertEquals(tooltip, language.get("item.homecore." + name + ".tooltip").getAsString());
     }
 
+    @Test
+    void workbenchStatesResolveModelsAndSixteenPixelTextures() throws IOException {
+        JsonObject variants = json("assets/homecore/blockstates/electronics_workbench.json")
+                .getAsJsonObject("variants");
+        for (String facing : new String[]{"north", "east", "south", "west"}) {
+            for (int stage = 0; stage < 4; stage++) {
+                String modelId = variants.getAsJsonObject("facing=" + facing + ",stage=" + stage)
+                        .get("model").getAsString();
+                JsonObject model = json("assets/" + modelId.replace(":", "/models/") + ".json");
+                for (var entry : model.getAsJsonObject("textures").entrySet()) {
+                    String textureId = entry.getValue().getAsString();
+                    try (InputStream stream = resource("assets/" + textureId.replace(":", "/textures/") + ".png")) {
+                        BufferedImage image = ImageIO.read(stream);
+                        assertNotNull(image, textureId);
+                        assertEquals(16, image.getWidth(), textureId);
+                        assertEquals(16, image.getHeight(), textureId);
+                    }
+                }
+            }
+        }
+        assertEquals("homecore:block/electronics_workbench",
+                json("assets/homecore/models/item/electronics_workbench.json").get("parent").getAsString());
+    }
+
+    @Test
+    void workbenchAndRecipePartsHaveMatchingEnglishAndFrenchLabels() throws IOException {
+        JsonObject en = json("assets/homecore/lang/en_us.json");
+        JsonObject fr = json("assets/homecore/lang/fr_fr.json");
+        assertEquals(en.keySet(), fr.keySet(), "Locales must expose the same translated labels");
+        assertEquals("HomeLink Electronics Workbench", en.get("block.homecore.electronics_workbench").getAsString());
+        assertEquals("\u00c9tabli \u00e9lectronique HomeLink", fr.get("block.homecore.electronics_workbench").getAsString());
+        for (String name : new String[]{"homelink_circuit_board", "homelink_microprocessor"}) {
+            JsonObject recipe = json("data/homecore/recipe/" + name + ".json");
+            assertEquals("homecore:electronics", recipe.get("type").getAsString());
+            for (var element : recipe.getAsJsonArray("assembly_layout")) {
+                String key = element.getAsJsonObject().get("label").getAsString();
+                assertTrue(en.has(key), "Missing English label " + key);
+                assertTrue(fr.has(key), "Missing French label " + key);
+            }
+        }
+    }
+
     private static JsonObject json(String path) throws IOException {
         try (InputStream stream = resource(path);
              InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {

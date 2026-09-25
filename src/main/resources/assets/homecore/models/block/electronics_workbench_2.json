@@ -1,0 +1,6 @@
+{
+  "parent": "homecore:block/electronics_workbench",
+  "textures": {
+    "front": "homecore:block/electronics_workbench_front_2"
+  }
+}

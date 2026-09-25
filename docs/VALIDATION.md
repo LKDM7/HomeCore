@@ -168,3 +168,35 @@ Le contrôle d'archive vérifie désormais la version du projet et a validé le 
 ## Version 1.3.0 — liaison et noms
 
 Build complet réussi le 19 septembre 2026 : 89 tests unitaires. Les nouveaux tests couvrent les contraintes de liaison côté actions et synchronisation, le retour des appareils joignables, le renommage sans changement d'identité et la conservation du nouveau nom après sauvegarde disque et rechargement successif. Journal local : build/network-names-validation.log.
+
+## Version 1.5.0 — Electronics Workbench
+
+Validation du 25 septembre 2026 sur Minecraft 1.21.1, NeoForge 21.1.250 et Java 21 :
+
+- `build` : 100 tests unitaires réussis ; contrôle du JAR, modèles, textures,
+  traductions et exclusion des fixtures de développement.
+- `runPersistence -PpersistencePass=write` puis `read` : huit GameTests réussis
+  dans chaque processus. Les contrôles couvrent les deux recettes, les lots,
+  les quantités invalides, les sorties pleines, la propriété des sessions,
+  les étapes rejouées, les annulations, la fermeture et l'absence du joueur,
+  la destruction du bloc et les récipients restitués après fabrication.
+- Une production sauvegardée dans un chunk distant reprend après arrêt et
+  redémarrage effectifs du serveur : 16 circuits exactement, conservation des
+  autres objets stockés, aucune seconde production après achèvement.
+- Le client de vérification fabrique 64 circuits puis 64 microprocesseurs,
+  en alternant glisser-déposer et clic-clic avec accusés serveur. Il contrôle
+  également la recette vanilla de l'établi, son déblocage, le transfert rapide
+  vers les matériaux et la récupération des lots.
+- Les quatre états du bloc, dans leurs quatre orientations, sont contrôlés
+  après chargement réel des modèles et textures par Minecraft. Les modèles des
+  deux composants sont également vérifiés contre les textures manquantes.
+- Interfaces anglaise et française contrôlées dans Minecraft avec
+  `runWorkbenchSmoke` et `runWorkbenchSmoke -PworkbenchLanguage=fr_fr` réussis ;
+  captures des phases sélection,
+  assemblage, production et résultat dans le dossier local
+  `build/validation/workbench-client/screenshots/fr_fr/`.
+
+Les marqueurs `HOMECORE_WORKBENCH_SCREEN_OK`, `HOMECORE_WORKBENCH_MODELS_OK`
+et `HOMECORE_NETWORK_SMOKE_OK` sont exigés par la tâche client. Le transport
+Device/Metric/Action existant reste couvert par le même client connecté.
+Les tests ne constituent pas un benchmark ni une validation avec des modpacks tiers.

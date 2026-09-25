@@ -1,18 +1,16 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "pattern": [
-    "CRC",
-    "RQR",
-    "CRC"
+  "type": "homecore:electronics",
+  "category": "components",
+  "ingredients": [
+    { "ingredient": { "item": "minecraft:copper_ingot" }, "count": 4 },
+    { "ingredient": { "item": "minecraft:redstone" }, "count": 4 },
+    { "ingredient": { "item": "minecraft:quartz" }, "count": 1 }
   ],
-  "key": {
-    "C": { "item": "minecraft:copper_ingot" },
-    "R": { "item": "minecraft:redstone" },
-    "Q": { "item": "minecraft:quartz" }
-  },
-  "result": {
-    "id": "homecore:homelink_circuit_board",
-    "count": 2
-  }
+  "result": { "id": "homecore:homelink_circuit_board", "count": 2 },
+  "processing_time": 20,
+  "assembly_layout": [
+    { "id": "copper", "label": "assembly.homecore.copper_traces", "ingredient_index": 0, "x": 25, "y": 30 },
+    { "id": "redstone", "label": "assembly.homecore.redstone_nodes", "ingredient_index": 1, "x": 75, "y": 70 },
+    { "id": "quartz", "label": "assembly.homecore.quartz_controller", "ingredient_index": 2, "x": 50, "y": 50 }
+  ]
 }

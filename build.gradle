@@ -82,27 +82,33 @@ tasks.withType(Jar).configureEach {
 
 def releaseJarFile = tasks.named('jar', Jar).flatMap { it.archiveFile }
 def releaseVersion = providers.gradleProperty('mod_version').get()
+def curseForgePublishRequested = gradle.startParameter.taskNames.any {
+    it == 'publishHomeCoreToCurseForge' || it.endsWith(':publishHomeCoreToCurseForge')
+}
+def curseForgeToken = curseForgePublishRequested
+        ? providers.gradleProperty('curseforge_api_token')
+                .orElse(providers.environmentVariable('CURSEFORGE_API_TOKEN')).getOrNull()
+        : null
+if (curseForgePublishRequested && !curseForgeToken?.trim()) {
+    throw new GradleException('Set curseforge_api_token in your user Gradle properties or CURSEFORGE_API_TOKEN in the environment.')
+}
 
 tasks.register('publishHomeCoreToCurseForge', net.darkhax.curseforgegradle.TaskPublishCurseForge) {
     group = 'publishing'
     description = 'Builds and uploads the HomeCore release JAR to CurseForge project 1711592.'
     dependsOn tasks.named('check')
+    notCompatibleWithConfigurationCache('The CurseForge upload reads its API token only when publishing.')
 
-    // Read credentials only when this task is run. Never store the token in this repository.
-    apiToken = {
-        def token = providers.gradleProperty('curseforge_api_token')
-                .orElse(providers.environmentVariable('CURSEFORGE_API_TOKEN')).getOrNull()
-        if (!token?.trim()) {
-            throw new GradleException('Set curseforge_api_token in your user Gradle properties or CURSEFORGE_API_TOKEN in the environment.')
-        }
-        token
-    }
+    // Publishing is excluded from the configuration cache so the API token is never cached.
+    apiToken = curseForgeToken
 
     def mainFile = upload(1711592, tasks.named('jar'))
     mainFile.displayName = "HomeCore ${releaseVersion}"
     mainFile.changelog = "HomeCore ${releaseVersion} for Minecraft ${minecraft_version} and NeoForge ${neo_version}."
     mainFile.changelogType = 'markdown'
     mainFile.releaseType = 'release'
+    mainFile.addEnvironment('Client', 'Server')
+    mainFile.addModLoader('NeoForge')
 }
 
 def verifyReleaseJar = tasks.register('verifyReleaseJar') {

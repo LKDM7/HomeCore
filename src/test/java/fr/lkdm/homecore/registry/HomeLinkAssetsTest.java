@@ -29,12 +29,16 @@ class HomeLinkAssetsTest {
     }
 
     @Test
-    void itemModelsReferenceReadableSixteenPixelTextures() throws IOException {
+    void voxelModelsReferenceReadableSixteenPixelTextures() throws IOException {
         for (String name : new String[] {"homelink_circuit_board", "homelink_microprocessor"}) {
             JsonObject model = json("assets/homecore/models/item/" + name + ".json");
-            assertEquals("minecraft:item/generated", model.get("parent").getAsString());
+            assertEquals("minecraft:block/block", model.get("parent").getAsString());
+            assertTrue(model.getAsJsonArray("elements").size() >= 2);
             assertEquals("homecore:item/" + name,
-                    model.getAsJsonObject("textures").get("layer0").getAsString());
+                    model.getAsJsonObject("textures").get("face").getAsString());
+            assertEquals("homecore:item/homelink_model_palette",
+                    model.getAsJsonObject("textures").get("palette").getAsString());
+            assertTrue(model.getAsJsonObject("display").has("gui"));
             try (InputStream stream = resource("assets/homecore/textures/item/" + name + ".png")) {
                 BufferedImage image = ImageIO.read(stream);
                 assertNotNull(image, name + " PNG could not be decoded");
@@ -43,6 +47,12 @@ class HomeLinkAssetsTest {
                 assertTrue(image.getColorModel().hasAlpha());
                 assertTrue(image.getRGB(8, 8) >>> 24 != 0, name + " has no visible center");
             }
+        }
+        try (InputStream stream = resource("assets/homecore/textures/item/homelink_model_palette.png")) {
+            BufferedImage palette = ImageIO.read(stream);
+            assertNotNull(palette);
+            assertEquals(16, palette.getWidth());
+            assertEquals(16, palette.getHeight());
         }
     }
 

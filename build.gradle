@@ -102,6 +102,7 @@ def verifyReleaseJar = tasks.register('verifyReleaseJar') {
                              'assets/homecore/models/item/homelink_microprocessor.json',
                              'assets/homecore/textures/item/homelink_circuit_board.png',
                              'assets/homecore/textures/item/homelink_microprocessor.png',
+                             'assets/homecore/textures/item/homelink_model_palette.png',
                              'assets/homecore/lang/en_us.json', 'assets/homecore/lang/fr_fr.json',
                              'data/homecore/recipe/homelink_circuit_board.json',
                              'data/homecore/recipe/homelink_microprocessor.json',
@@ -237,7 +238,8 @@ tasks.named('runNetworkSmoke') {
     doLast {
         def report = networkSmokeLog.get().asFile
         def text = report.exists() ? report.getText('UTF-8') : ''
-        if (!text.contains('HOMECORE_NETWORK_SMOKE_OK') || !text.contains('HOMECORE_NETWORK_SMOKE_SHUTDOWN_OK') || text.contains('HOMECORE_NETWORK_SMOKE_FAILED')) {
+        if (!text.contains('HOMECORE_NETWORK_SMOKE_OK') || !text.contains('HOMECORE_NETWORK_SMOKE_SHUTDOWN_OK')
+                || !text.contains('HOMECORE_HOMELINK_MODELS_OK') || text.contains('HOMECORE_NETWORK_SMOKE_FAILED')) {
             throw new GradleException('Connected-client verification failed; inspect the network-client log.')
         }
     }

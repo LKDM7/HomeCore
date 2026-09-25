@@ -1,0 +1,44 @@
+package fr.lkdm.homecore.verification;
+
+import com.mojang.logging.LogUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.model.data.ModelData;
+
+/** Verifies that the two item models are baked as three-dimensional voxel models. */
+@EventBusSubscriber(modid = HomeCoreValidation.MOD_ID, value = Dist.CLIENT)
+public final class HomeLinkModelSmoke {
+    private static boolean checked;
+
+    @SubscribeEvent
+    public static void tick(ClientTickEvent.Post event) {
+        if (checked || !Boolean.getBoolean("homecore.networkSmoke")) return;
+        Minecraft client = Minecraft.getInstance();
+        if (!(client.screen instanceof TitleScreen)) return;
+        check(client, "homelink_circuit_board", 12);
+        check(client, "homelink_microprocessor", 60);
+        checked = true;
+        LogUtils.getLogger().info("HOMECORE_HOMELINK_MODELS_OK");
+    }
+
+    private static void check(Minecraft client, String name, int minimumQuads) {
+        var location = ResourceLocation.fromNamespaceAndPath("homecore", name);
+        var model = client.getModelManager().getModel(new ModelResourceLocation(location, "inventory"));
+        var quads = model.getQuads(null, null, RandomSource.create(), ModelData.EMPTY, null);
+        var sprites = quads.stream().map(quad -> quad.getSprite().contents().name()).toList();
+        if (!model.isGui3d() || quads.size() < minimumQuads
+                || !sprites.contains(ResourceLocation.fromNamespaceAndPath("homecore", "item/" + name))
+                || !sprites.contains(ResourceLocation.fromNamespaceAndPath(
+                        "homecore", "item/homelink_model_palette"))) {
+            throw new IllegalStateException("HomeLink voxel item model did not bake: " + name
+                    + " (quads=" + quads.size() + ", sprites=" + sprites + ")");
+        }
+    }
+}

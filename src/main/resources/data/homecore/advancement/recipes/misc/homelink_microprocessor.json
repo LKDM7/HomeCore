@@ -1,0 +1,16 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_circuit_board": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          { "items": "homecore:homelink_circuit_board" }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "recipes": ["homecore:homelink_microprocessor"]
+  }
+}

@@ -2,6 +2,8 @@ package fr.lkdm.homecore;
 
 import com.mojang.logging.LogUtils;
 import fr.lkdm.homecore.api.DashboardAPI;
+import fr.lkdm.homecore.registry.HomeCoreCreativeTabs;
+import fr.lkdm.homecore.registry.HomeCoreItems;
 import net.neoforged.fml.common.Mod;
 import org.slf4j.Logger;
 
@@ -12,6 +14,8 @@ public final class HomeCore {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public HomeCore(net.neoforged.bus.api.IEventBus modBus) {
+        HomeCoreItems.ITEMS.register(modBus);
+        HomeCoreCreativeTabs.TABS.register(modBus);
         modBus.addListener(fr.lkdm.homecore.network.PayloadRegistration::register);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(this::serverStopped);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(this::serverTick);

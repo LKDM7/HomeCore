@@ -96,6 +96,17 @@ def verifyReleaseJar = tasks.register('verifyReleaseJar') {
                 throw new GradleException('Development or test classes found in release JAR.')
             }
             for (def entry : ['fr/lkdm/homecore/HomeCore.class', 'fr/lkdm/homecore/api/DashboardAPI.class',
+                             'fr/lkdm/homecore/registry/HomeCoreItems.class',
+                             'fr/lkdm/homecore/registry/HomeCoreCreativeTabs.class',
+                             'assets/homecore/models/item/homelink_circuit_board.json',
+                             'assets/homecore/models/item/homelink_microprocessor.json',
+                             'assets/homecore/textures/item/homelink_circuit_board.png',
+                             'assets/homecore/textures/item/homelink_microprocessor.png',
+                             'assets/homecore/lang/en_us.json', 'assets/homecore/lang/fr_fr.json',
+                             'data/homecore/recipe/homelink_circuit_board.json',
+                             'data/homecore/recipe/homelink_microprocessor.json',
+                             'data/homecore/advancement/recipes/misc/homelink_circuit_board.json',
+                             'data/homecore/advancement/recipes/misc/homelink_microprocessor.json',
                              'META-INF/neoforge.mods.toml', 'META-INF/LICENSE']) {
                 if (!names.contains(entry)) throw new GradleException("Missing release entry: ${entry}")
             }

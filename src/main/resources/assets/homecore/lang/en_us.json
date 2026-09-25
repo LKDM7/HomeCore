@@ -1,0 +1,7 @@
+{
+  "item.homecore.homelink_circuit_board": "HomeLink Circuit Board",
+  "item.homecore.homelink_circuit_board.tooltip": "Basic electronic component used by HomeLink devices.",
+  "item.homecore.homelink_microprocessor": "HomeLink Microprocessor",
+  "item.homecore.homelink_microprocessor.tooltip": "Compact processor used by advanced HomeLink systems.",
+  "itemGroup.homecore.homecore": "HomeCore"
+}

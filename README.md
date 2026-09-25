@@ -2,6 +2,10 @@
 
 English version: [README.en.md](README.en.md).
 
+CurseForge description (English): [CURSEFORGE_DESCRIPTION.md](CURSEFORGE_DESCRIPTION.md).
+
+CurseForge publishing setup: [English README](README.en.md#publish-to-curseforge).
+
 API commune pour les appareils et réseaux d'une base Minecraft. HomeCore ne dépend d'aucun mod consommateur : Home Dashboard, Farm Monitor et une carte holographique peuvent utiliser ses contrats sans que HomeCore connaisse leurs implémentations.
 
 Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API : `DashboardAPI.API_VERSION = "1.3.0"`.

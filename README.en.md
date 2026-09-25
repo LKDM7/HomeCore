@@ -37,6 +37,26 @@ side="BOTH"
 
 No remote distribution repository is assumed. Publishing to Maven Local is an explicit command and is not part of `build`.
 
+## Publish to CurseForge
+
+The `publishHomeCoreToCurseForge` Gradle task uploads the release JAR to the HomeCore project (ID `1711592`). It runs the project checks before uploading and tags the file with the Minecraft and NeoForge versions configured above.
+
+Create an API token in your CurseForge account settings under **API Tokens**. Store it in your user-level Gradle properties file, outside this repository:
+
+```properties
+curseforge_api_token=YOUR_PRIVATE_CURSEFORGE_TOKEN
+```
+
+On Windows, this file is `%USERPROFILE%\.gradle\gradle.properties`; on Linux/macOS, use `~/.gradle/gradle.properties`. Alternatively, set the `CURSEFORGE_API_TOKEN` environment variable. Never commit or share the token.
+
+When you are ready to upload a release, run:
+
+```powershell
+./gradlew.bat publishHomeCoreToCurseForge
+```
+
+CurseForge may review the uploaded file before making it available on the project page.
+
 ## HomeLink components
 
 ### HomeLink Circuit Board
@@ -72,6 +92,8 @@ The server reserves ingredients before the prototype begins and validates every 
 Other HomeLink mods can add recipes through the `homecore:electronics` recipe type in their own data resources; they do not need to depend on each other. The existing Device, Metric, Action, Event and HomeNetwork contracts are unchanged.
 
 See [Electronics recipe format](docs/ELECTRONICS.md) for the extensible JSON schema.
+
+For a ready-to-paste CurseForge project description, see [CURSEFORGE_DESCRIPTION.md](CURSEFORGE_DESCRIPTION.md).
 
 ## Contracts and lifecycle
 

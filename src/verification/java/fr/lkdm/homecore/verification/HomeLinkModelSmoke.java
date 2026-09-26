@@ -12,7 +12,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.model.data.ModelData;
 
-/** Verifies that the two item models are baked as three-dimensional voxel models. */
+/** Verifies that the HomeLink component item models are baked as three-dimensional voxel models. */
 @EventBusSubscriber(modid = HomeCoreValidation.MOD_ID, value = Dist.CLIENT)
 public final class HomeLinkModelSmoke {
     private static boolean checked;
@@ -24,6 +24,8 @@ public final class HomeLinkModelSmoke {
         if (!(client.screen instanceof TitleScreen)) return;
         check(client, "homelink_circuit_board", 12);
         check(client, "homelink_microprocessor", 60);
+        check(client, "homelink_communication_module", 60);
+        check(client, "homelink_control_module", 50);
         checked = true;
         LogUtils.getLogger().info("HOMECORE_HOMELINK_MODELS_OK");
     }

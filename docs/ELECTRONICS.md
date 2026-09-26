@@ -5,9 +5,11 @@ The workbench discovers recipes from Minecraft's recipe manager. An add-on suppl
 `data/<namespace>/recipe/<name>.json` with `type` set to `homecore:electronics`.
 No Java registration or dependency on another HomeLink add-on is needed.
 
-See [the Circuit Board recipe](../src/main/resources/data/homecore/recipe/homelink_circuit_board.json)
-and [the Microprocessor recipe](../src/main/resources/data/homecore/recipe/homelink_microprocessor.json)
-for complete examples.
+See the [Circuit Board](../src/main/resources/data/homecore/recipe/homelink_circuit_board.json),
+[Microprocessor](../src/main/resources/data/homecore/recipe/homelink_microprocessor.json),
+[Communication Module](../src/main/resources/data/homecore/recipe/homelink_communication_module.json)
+and [Control Module](../src/main/resources/data/homecore/recipe/homelink_control_module.json)
+recipes for complete examples.
 
 `ingredients` contains 1–9 objects with `ingredient` (a Minecraft item/tag ingredient)
 and `count` (1–576 units per assembly). NeoForge ingredient codecs are supported.
@@ -23,7 +25,8 @@ is `ingredient.count × requested final items / result.count`.
 
 `assembly_layout` contains 1–8 draggable material groups. Each has a unique `id`,
 a `label` translation key, an `ingredient_index` (zero-based index into `ingredients`),
-and target coordinates `x` and `y` from 0 to 100 over the assembly board. Use
+and target coordinates `x` and `y` from 0 to 100 over the assembly board. Several
+parts may share one ingredient, for example two copper connections on either side. Use
 separated targets so drop areas remain easy to select. One completed prototype
 validates the whole batch, regardless of quantity.
 
@@ -31,7 +34,8 @@ validates the whole batch, regardless of quantity.
 The workbench scales the batch animation with quantity and caps it at 80 ticks.
 `category` is an optional grouping string, defaulting to `components`.
 
-Recipes appear directly in the workbench selector. They do not need vanilla Recipe
+Recipes appear directly in the workbench selector, ordered by the registration
+order of their result item. They do not need vanilla Recipe
 Book advancements, and are not crafting-table recipes. An add-on should declare an
 explicit compatible HomeCore dependency version.
 

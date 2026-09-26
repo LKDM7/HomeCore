@@ -12,6 +12,9 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class HomeLinkAssetsTest {
+    private static final String[] COMPONENTS = {"homelink_circuit_board", "homelink_microprocessor",
+            "homelink_communication_module", "homelink_control_module"};
+
     @Test
     void namesAndTooltipsAreTranslatedInBothLanguages() throws IOException {
         JsonObject en = json("assets/homecore/lang/en_us.json");
@@ -24,13 +27,21 @@ class HomeLinkAssetsTest {
                 "Compact processor used by advanced HomeLink systems.");
         assertTranslation(fr, "homelink_microprocessor", "Microprocesseur HomeLink",
                 "Processeur compact utilisé par les systèmes HomeLink avancés.");
+        assertTranslation(en, "homelink_communication_module", "HomeLink Communication Module",
+                "Communication and data transmission module for HomeLink devices.");
+        assertTranslation(fr, "homelink_communication_module", "Module de communication HomeLink",
+                "Module de transmission et de communication pour les appareils HomeLink.");
+        assertTranslation(en, "homelink_control_module", "HomeLink Control Module",
+                "Control module used by automated HomeLink machines.");
+        assertTranslation(fr, "homelink_control_module", "Module de contrôle HomeLink",
+                "Module de contrôle utilisé par les machines automatisées HomeLink.");
         assertEquals("HomeCore", en.get("itemGroup.homecore.homecore").getAsString());
         assertEquals("HomeCore", fr.get("itemGroup.homecore.homecore").getAsString());
     }
 
     @Test
     void voxelModelsReferenceReadableSixteenPixelTextures() throws IOException {
-        for (String name : new String[] {"homelink_circuit_board", "homelink_microprocessor"}) {
+        for (String name : COMPONENTS) {
             JsonObject model = json("assets/homecore/models/item/" + name + ".json");
             assertEquals("minecraft:block/block", model.get("parent").getAsString());
             assertTrue(model.getAsJsonArray("elements").size() >= 2);
@@ -102,7 +113,7 @@ class HomeLinkAssetsTest {
         assertEquals(en.keySet(), fr.keySet(), "Locales must expose the same translated labels");
         assertEquals("HomeLink Electronics Workbench", en.get("block.homecore.electronics_workbench").getAsString());
         assertEquals("\u00c9tabli \u00e9lectronique HomeLink", fr.get("block.homecore.electronics_workbench").getAsString());
-        for (String name : new String[]{"homelink_circuit_board", "homelink_microprocessor"}) {
+        for (String name : COMPONENTS) {
             JsonObject recipe = json("data/homecore/recipe/" + name + ".json");
             assertEquals("homecore:electronics", recipe.get("type").getAsString());
             for (var element : recipe.getAsJsonArray("assembly_layout")) {

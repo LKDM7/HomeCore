@@ -1,0 +1,20 @@
+{
+  "parent": "minecraft:block/block",
+  "gui_light": "side",
+  "ambientocclusion": false,
+  "render_type": "minecraft:cutout",
+  "textures": {"face":"homecore:item/homelink_control_module","palette":"homecore:item/homelink_model_palette","particle":"homecore:item/homelink_control_module"},
+  "display": {"gui":{"rotation":[20,-28,0],"scale":[0.94,0.94,0.94]},"ground":{"translation":[0,2,0],"scale":[0.6,0.6,0.6]},"fixed":{"rotation":[0,0,0],"scale":[0.8,0.8,0.8]},"thirdperson_righthand":{"rotation":[65,-35,0],"translation":[0,2,0],"scale":[0.6,0.6,0.6]},"thirdperson_lefthand":{"rotation":[65,35,0],"translation":[0,2,0],"scale":[0.6,0.6,0.6]},"firstperson_righthand":{"rotation":[15,-40,0],"translation":[1,2,0],"scale":[0.8,0.8,0.8]},"firstperson_lefthand":{"rotation":[15,40,0],"translation":[-1,2,0],"scale":[0.8,0.8,0.8]}},
+  "elements": [
+    {"from":[2,3,6],"to":[14,15,9],"faces":{"north":{"texture":"#face","uv":[2,1,14,13]},"south":{"texture":"#face","uv":[2,1,14,13]},"east":{"texture":"#palette","uv":[0,4,4,8]},"west":{"texture":"#palette","uv":[0,4,4,8]},"up":{"texture":"#palette","uv":[4,4,8,8]},"down":{"texture":"#palette","uv":[0,4,4,8]}}},
+    {"from":[5,6,9],"to":[11,12,10],"faces":{"north":{"texture":"#palette","uv":[12,12,16,16]},"south":{"texture":"#face","uv":[5,4,11,10]},"east":{"texture":"#palette","uv":[12,12,16,16]},"west":{"texture":"#palette","uv":[12,12,16,16]},"up":{"texture":"#palette","uv":[12,12,16,16]},"down":{"texture":"#palette","uv":[4,8,8,12]}}},
+    {"from":[7,8,10],"to":[9,10,10.5],"faces":{"south":{"texture":"#palette","uv":[4,4,8,8]},"east":{"texture":"#palette","uv":[4,4,8,8]},"west":{"texture":"#palette","uv":[4,4,8,8]},"up":{"texture":"#palette","uv":[4,4,8,8]},"down":{"texture":"#palette","uv":[4,4,8,8]}}},
+    {"from":[5,0,6.5],"to":[11,3,8.5],"faces":{"north":{"texture":"#face","uv":[5,13,11,16]},"south":{"texture":"#face","uv":[5,13,11,16]},"east":{"texture":"#palette","uv":[8,12,12,16]},"west":{"texture":"#palette","uv":[8,12,12,16]},"up":{"texture":"#palette","uv":[8,0,12,4]},"down":{"texture":"#palette","uv":[0,4,4,8]}}},
+    {"from":[0,11,7],"to":[2,12,8],"faces":{"north":{"texture":"#palette","uv":[12,0,16,4]},"south":{"texture":"#palette","uv":[12,0,16,4]},"east":{"texture":"#palette","uv":[8,0,12,4]},"west":{"texture":"#palette","uv":[8,0,12,4]},"up":{"texture":"#palette","uv":[12,0,16,4]},"down":{"texture":"#palette","uv":[8,12,12,16]}}},
+    {"from":[0,9,7],"to":[2,10,8],"faces":{"north":{"texture":"#palette","uv":[12,0,16,4]},"south":{"texture":"#palette","uv":[12,0,16,4]},"east":{"texture":"#palette","uv":[8,0,12,4]},"west":{"texture":"#palette","uv":[8,0,12,4]},"up":{"texture":"#palette","uv":[12,0,16,4]},"down":{"texture":"#palette","uv":[8,12,12,16]}}},
+    {"from":[0,7,7],"to":[2,8,8],"faces":{"north":{"texture":"#palette","uv":[12,0,16,4]},"south":{"texture":"#palette","uv":[12,0,16,4]},"east":{"texture":"#palette","uv":[8,0,12,4]},"west":{"texture":"#palette","uv":[8,0,12,4]},"up":{"texture":"#palette","uv":[12,0,16,4]},"down":{"texture":"#palette","uv":[8,12,12,16]}}},
+    {"from":[14,11,7],"to":[16,12,8],"faces":{"north":{"texture":"#palette","uv":[12,0,16,4]},"south":{"texture":"#palette","uv":[12,0,16,4]},"east":{"texture":"#palette","uv":[8,0,12,4]},"west":{"texture":"#palette","uv":[8,0,12,4]},"up":{"texture":"#palette","uv":[12,0,16,4]},"down":{"texture":"#palette","uv":[8,12,12,16]}}},
+    {"from":[14,9,7],"to":[16,10,8],"faces":{"north":{"texture":"#palette","uv":[12,0,16,4]},"south":{"texture":"#palette","uv":[12,0,16,4]},"east":{"texture":"#palette","uv":[8,0,12,4]},"west":{"texture":"#palette","uv":[8,0,12,4]},"up":{"texture":"#palette","uv":[12,0,16,4]},"down":{"texture":"#palette","uv":[8,12,12,16]}}},
+    {"from":[14,7,7],"to":[16,8,8],"faces":{"north":{"texture":"#palette","uv":[12,0,16,4]},"south":{"texture":"#palette","uv":[12,0,16,4]},"east":{"texture":"#palette","uv":[8,0,12,4]},"west":{"texture":"#palette","uv":[8,0,12,4]},"up":{"texture":"#palette","uv":[12,0,16,4]},"down":{"texture":"#palette","uv":[8,12,12,16]}}}
+  ]
+}

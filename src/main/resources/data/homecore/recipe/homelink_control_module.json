@@ -1,0 +1,23 @@
+{
+  "type": "homecore:electronics",
+  "category": "components",
+  "ingredients": [
+    { "ingredient": { "item": "homecore:homelink_circuit_board" }, "count": 1 },
+    { "ingredient": { "item": "homecore:homelink_microprocessor" }, "count": 1 },
+    { "ingredient": { "item": "minecraft:comparator" }, "count": 1 },
+    { "ingredient": { "item": "minecraft:copper_ingot" }, "count": 2 },
+    { "ingredient": { "item": "minecraft:redstone" }, "count": 2 },
+    { "ingredient": { "item": "minecraft:iron_ingot" }, "count": 1 }
+  ],
+  "result": { "id": "homecore:homelink_control_module", "count": 1 },
+  "processing_time": 20,
+  "assembly_layout": [
+    { "id": "processor", "label": "assembly.homecore.control_processor", "ingredient_index": 1, "x": 50, "y": 0 },
+    { "id": "bus", "label": "assembly.homecore.control_bus", "ingredient_index": 0, "x": 50, "y": 50 },
+    { "id": "comparator", "label": "assembly.homecore.comparator_logic", "ingredient_index": 2, "x": 50, "y": 100 },
+    { "id": "redstone_west", "label": "assembly.homecore.redstone_control_lines", "ingredient_index": 4, "x": 15, "y": 25 },
+    { "id": "redstone_east", "label": "assembly.homecore.redstone_control_lines", "ingredient_index": 4, "x": 85, "y": 25 },
+    { "id": "copper", "label": "assembly.homecore.copper_outputs", "ingredient_index": 3, "x": 15, "y": 100 },
+    { "id": "machine", "label": "assembly.homecore.machine_output", "ingredient_index": 5, "x": 85, "y": 100 }
+  ]
+}

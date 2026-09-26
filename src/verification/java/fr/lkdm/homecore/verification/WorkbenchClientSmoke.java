@@ -27,6 +27,11 @@ public final class WorkbenchClientSmoke {
     private static boolean maximumChecked;
     private static volatile BlockPos workbenchPosition;
 
+    private static final java.util.List<java.util.function.Supplier<net.minecraft.world.item.Item>> CYCLE_RESULTS = java.util.List.of(
+            HomeCoreItems.HOMELINK_CIRCUIT_BOARD, HomeCoreItems.HOMELINK_MICROPROCESSOR,
+            HomeCoreItems.HOMELINK_COMMUNICATION_MODULE, HomeCoreItems.HOMELINK_CONTROL_MODULE);
+    private static final String[] CYCLE_NAMES = {"circuit", "microprocessor", "communication", "control"};
+
     private WorkbenchClientSmoke() { }
 
     @SubscribeEvent
@@ -97,7 +102,7 @@ public final class WorkbenchClientSmoke {
                 if (++age > 40 && client.screen == null) {
                     capture(client, "workbench-world.png");
                     client.options.hideGui = false;
-                    LogUtils.getLogger().info("HOMECORE_WORKBENCH_SCREEN_OK batch=64 recipes=2 drag=true click=true output=true max=true insufficient=true world=true");
+                    LogUtils.getLogger().info("HOMECORE_WORKBENCH_SCREEN_OK batch=64 recipes=4 drag=true click=true output=true max=true insufficient=true world=true");
                     finish(client);
                 }
                 return;
@@ -154,8 +159,7 @@ public final class WorkbenchClientSmoke {
                 productionCaptured = true;
             } else if (stage == 4 && menu.phase() == 3) {
                 if (menu.getSlot(9).getItem().getCount() != 64) throw new IllegalStateException("Completed output is not 64");
-                if (!menu.getSlot(9).getItem().is(cycle == 0 ? HomeCoreItems.HOMELINK_CIRCUIT_BOARD.get()
-                        : HomeCoreItems.HOMELINK_MICROPROCESSOR.get())) throw new IllegalStateException("Wrong completed component");
+                if (!menu.getSlot(9).getItem().is(CYCLE_RESULTS.get(cycle).get())) throw new IllegalStateException("Wrong completed component");
                 stage = 6;
                 age = 0;
             } else if (stage == 6 && age > 10) {
@@ -165,8 +169,9 @@ public final class WorkbenchClientSmoke {
                 age = 0;
             } else if (stage == 5 && age > 10 && menu.getSlot(9).getItem().isEmpty()) {
                 if (!productionCaptured) throw new IllegalStateException("Production framebuffer was not captured");
-                if (cycle == 0) {
-                    cycle = 1;
+                if (cycle < CYCLE_RESULTS.size() - 1) {
+                    cycle++;
+                    int stocked = cycle;
                     productionCaptured = false;
                     var playerId = client.player.getUUID();
                     var server = client.getSingleplayerServer();
@@ -175,15 +180,23 @@ public final class WorkbenchClientSmoke {
                             var player = server.getPlayerList().getPlayer(playerId);
                             var serverMenu = (fr.lkdm.homecore.workbench.ElectronicsMenu) player.containerMenu;
                             var block = serverMenu.workbench();
-                            block.setItem(0, new ItemStack(HomeCoreItems.HOMELINK_CIRCUIT_BOARD.get(), 64));
-                            for (int i = 1; i <= 4; i++) block.setItem(i, new ItemStack(Items.GOLD_NUGGET, 64));
-                            block.setItem(5, new ItemStack(Items.COPPER_INGOT, 64));
-                            block.setItem(6, new ItemStack(Items.COPPER_INGOT, 64));
-                            block.setItem(7, new ItemStack(Items.REDSTONE, 64));
-                            block.setItem(8, new ItemStack(Items.QUARTZ, 64));
+                            block.clearContent();
+                            var board = HomeCoreItems.HOMELINK_CIRCUIT_BOARD.get();
+                            var processor = HomeCoreItems.HOMELINK_MICROPROCESSOR.get();
+                            // Exactly enough stock for a full batch of 64 final items.
+                            var stock = switch (stocked) {
+                                case 1 -> java.util.List.of(board, Items.GOLD_NUGGET, Items.GOLD_NUGGET, Items.GOLD_NUGGET,
+                                        Items.GOLD_NUGGET, Items.COPPER_INGOT, Items.COPPER_INGOT, Items.REDSTONE, Items.QUARTZ);
+                                case 2 -> java.util.List.of(board, processor, Items.COPPER_INGOT, Items.COPPER_INGOT,
+                                        Items.REDSTONE, Items.REDSTONE, Items.QUARTZ, Items.AMETHYST_SHARD);
+                                default -> java.util.List.of(board, processor, Items.COMPARATOR, Items.COPPER_INGOT,
+                                        Items.COPPER_INGOT, Items.REDSTONE, Items.REDSTONE, Items.IRON_INGOT);
+                            };
+                            for (int slot = 0; slot < stock.size(); slot++) block.setItem(slot, new ItemStack(stock.get(slot), 64));
                         } catch (Throwable failure) { serverFailure = failure; }
                     });
-                    click(screen, left + 120, top + 36);
+                    // Recipe tabs follow component registration order.
+                    click(screen, left + 92 + cycle * 28, top + 36);
                     stage = 1;
                     age = 0;
                 } else {
@@ -233,7 +246,8 @@ public final class WorkbenchClientSmoke {
         Path path = client.gameDirectory.toPath().resolve("screenshots");
         Files.createDirectories(path);
         try (var image = Screenshot.takeScreenshot(client.getMainRenderTarget())) {
-            image.writeToFile(path.resolve(cycle == 0 || filename.equals("workbench-world.png") ? filename : filename.replace("workbench-", "workbench-microprocessor-")));
+            image.writeToFile(path.resolve(cycle == 0 || filename.equals("workbench-world.png") ? filename
+                    : filename.replace("workbench-", "workbench-" + CYCLE_NAMES[cycle] + "-")));
         }
     }
 

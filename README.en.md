@@ -1,4 +1,4 @@
-# HomeCore 1.6.1
+# HomeCore 1.7.0
 
 French version: [README.md](README.md).
 
@@ -15,13 +15,13 @@ Set `JAVA_HOME` to a JDK 21 installation, then use the Gradle wrapper:
 ./gradlew.bat runClient
 ```
 
-On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.6.1.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
+On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.7.0.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
 
 To develop a consumer mod, first publish HomeCore to your local Maven repository with `./gradlew.bat publishToMavenLocal`, then add this to the ModDevGradle project:
 
 ```groovy
 repositories { mavenLocal() }
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.6.1' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.7.0' }
 ```
 
 Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
@@ -30,7 +30,7 @@ Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.6.1,2.0.0)"
+versionRange="[1.7.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -67,7 +67,24 @@ A basic electronic component for HomeLink-compatible devices. It is assembled ex
 
 An advanced processing component for more complex HomeLink devices. It is assembled exclusively at the Electronics Workbench using a HomeLink Circuit Board and vanilla Gold Nuggets, Copper, Redstone and Quartz.
 
-These two components are the shared foundation for recipes across the HomeLink ecosystem. Consumer mods can reference `homecore:homelink_circuit_board` and `homecore:homelink_microprocessor` directly without depending on each other.
+### HomeLink Communication Module
+
+A communication, networking and sensing component for HomeLink devices that transmit data or detect signals. It is assembled exclusively at the Electronics Workbench from a HomeLink Circuit Board, a HomeLink Microprocessor and vanilla Copper, Redstone, Quartz and an Amethyst Shard.
+
+### HomeLink Control Module
+
+A machine control and automation component for HomeLink devices that act on the world: motors, mechanisms and automated machines. It is assembled exclusively at the Electronics Workbench from a HomeLink Circuit Board, a HomeLink Microprocessor, a Comparator and vanilla Copper, Redstone and Iron.
+
+### HomeLink Electronics Components
+
+| Component | ID | Role |
+| --- | --- | --- |
+| Circuit Board | `homecore:homelink_circuit_board` | Basic electronics. |
+| Microprocessor | `homecore:homelink_microprocessor` | Processing and logic. |
+| Communication Module | `homecore:homelink_communication_module` | Communication, networking and sensing. |
+| Control Module | `homecore:homelink_control_module` | Machine control and automation. |
+
+All four are made in the Electronics Workbench according to their current recipes, and none has a vanilla crafting-table recipe. The two modules are specialised components, not higher tiers of the board or processor. These IDs are stable: consumer mods can reference them directly without depending on each other. HomeCore itself does not depend on any consumer mod.
 
 ## HomeLink Electronics Workbench
 
@@ -83,11 +100,11 @@ The workbench occupies two adjacent blocks with a continuous countertop and one 
 
 Its steel frame, recessed interface panels and warm metallic accents follow HomeLink Farm's visual style. The shared steel textures are bundled with HomeCore; HomeLink Farm is not required.
 
-Place materials in the nine input slots grouped on the left, select a component from its icon tab and choose the number of **finished items** (up to 64). Quantities follow the recipe yield: circuit boards increase in pairs, while microprocessors increase individually. Quick quantity buttons and MAX make it easier to select a batch. Ingredient icons show available and required counts before assembly. The output slot remains visible beside the material grid.
+Place materials in the nine input slots grouped on the left, select a component from its icon tab and choose the number of **finished items** (up to 64). Quantities follow the recipe yield: circuit boards increase in pairs, while microprocessors and modules increase individually. Quick quantity buttons and MAX make it easier to select a batch. Ingredient icons show available and required counts before assembly. The output slot remains visible beside the material grid.
 
 Assemble one prototype per batch using drag and drop, or click a part and then its matching socket. Correct placements snap into place; mistakes consume no materials. A short production animation follows validation, then the completed batch appears in the output slot.
 
-The server reserves ingredients before the prototype begins and validates every placement. Cancelling, closing the prototype screen or disconnecting before validation returns reserved materials to the input slots. Interrupted prototypes are also refunded after a world reload. Validated production continues after the screen closes and resumes when the workbench is loaded again. Its inventory is locked while a batch is reserved. Breaking the workbench drops stored items, finished output and reserved ingredients from any unfinished batch. These two components cannot be crafted in a vanilla crafting table.
+The server reserves ingredients before the prototype begins and validates every placement. Cancelling, closing the prototype screen or disconnecting before validation returns reserved materials to the input slots. Interrupted prototypes are also refunded after a world reload. Validated production continues after the screen closes and resumes when the workbench is loaded again. Its inventory is locked while a batch is reserved. Breaking the workbench drops stored items, finished output and reserved ingredients from any unfinished batch. None of the four components can be crafted in a vanilla crafting table.
 
 Other HomeLink mods can add recipes through the `homecore:electronics` recipe type in their own data resources; they do not need to depend on each other. The existing Device, Metric, Action, Event and HomeNetwork contracts are unchanged.
 
@@ -221,7 +238,7 @@ Define a Java contract and register it once with `DashboardAPI.capabilities().re
 
 ## Dashboard client
 
-For a dashboard, use `HomeCoreClient.subscribeNetwork(networkId)`: an active subscription for up to 128 devices, with initial snapshots spread across multiple ticks followed by deltas only. `NetworkWatchResponse.truncated()` explicitly reports networks larger than this limit. Membership and permission changes are sent without reloading devices that remain; events cover the entire network the player is authorized to see. HomeCore 1.6.1 uses network protocol 2, which must match on both sides. The older paginated API remains available.
+For a dashboard, use `HomeCoreClient.subscribeNetwork(networkId)`: an active subscription for up to 128 devices, with initial snapshots spread across multiple ticks followed by deltas only. `NetworkWatchResponse.truncated()` explicitly reports networks larger than this limit. Membership and permission changes are sent without reloading devices that remain; events cover the entire network the player is authorized to see. HomeCore 1.7.0 uses network protocol 2, which must match on both sides. The older paginated API remains available.
 
 From client code only, `HomeCoreClient.requestDevices(Optional.empty(), 0)` requests visible networks. Then pass `Optional.of(networkId)` to receive devices, snapshots and changes. A page contains at most 16 IDs; use `nextOffset` to continue. Only one device page is active per player.
 

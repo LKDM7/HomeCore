@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -70,7 +71,9 @@ public final class ElectronicsMenu extends AbstractContainerMenu {
     public ElectronicsBlockEntity workbench() { return workbench; }
     public List<RecipeHolder<ElectronicsRecipe>> recipes() {
         return viewer.level().getRecipeManager().getAllRecipesFor(HomeCoreRecipes.TYPE.get()).stream()
-                .sorted(Comparator.comparing(holder -> holder.id().toString())).toList();
+                // Registration order keeps related components together and matches the creative tab.
+                .sorted(Comparator.<RecipeHolder<ElectronicsRecipe>>comparingInt(holder -> BuiltInRegistries.ITEM.getId(holder.value().result().getItem()))
+                        .thenComparing(holder -> holder.id().toString())).toList();
     }
     public Optional<RecipeHolder<ElectronicsRecipe>> selectedRecipe() {
         ResourceLocation id = state == null ? selected : state.recipe();

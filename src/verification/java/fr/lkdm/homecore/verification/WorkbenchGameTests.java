@@ -190,6 +190,110 @@ public final class WorkbenchGameTests {
         return entities.stream().map(ItemEntity::getItem).filter(stack -> stack.is(item)).mapToInt(ItemStack::getCount).sum();
     }
 
+    private static final String COMMUNICATION = "homelink_communication_module", CONTROL = "homelink_control_module";
+
+    private static Item[] moduleMaterials(String name) {
+        return name.equals(COMMUNICATION)
+                ? new Item[]{Items.COPPER_INGOT, Items.REDSTONE, Items.QUARTZ, Items.AMETHYST_SHARD}
+                : new Item[]{Items.COPPER_INGOT, Items.REDSTONE, Items.COMPARATOR, Items.IRON_INGOT};
+    }
+
+    private static void stockModule(Fixture fixture, String name, int assemblies) {
+        Item[] materials = moduleMaterials(name);
+        fixture.block.clearContent();
+        fixture.block.setItem(0, new ItemStack(HomeCoreItems.HOMELINK_CIRCUIT_BOARD.get(), assemblies));
+        fixture.block.setItem(1, new ItemStack(HomeCoreItems.HOMELINK_MICROPROCESSOR.get(), assemblies));
+        for (int material = 0; material < 2; material++) {
+            fixture.block.setItem(2 + material * 2, new ItemStack(materials[material], Math.min(64, assemblies * 2)));
+            if (assemblies > 32) fixture.block.setItem(3 + material * 2, new ItemStack(materials[material], assemblies * 2 - 64));
+        }
+        fixture.block.setItem(6, new ItemStack(materials[2], assemblies));
+        fixture.block.setItem(7, new ItemStack(materials[3], assemblies));
+        fixture.block.setItem(8, new ItemStack(Items.STONE, 5));
+    }
+
+    private static boolean moduleStock(Fixture fixture, String name, int assemblies) {
+        Item[] materials = moduleMaterials(name);
+        return count(fixture.block, HomeCoreItems.HOMELINK_CIRCUIT_BOARD.get()) == assemblies
+                && count(fixture.block, HomeCoreItems.HOMELINK_MICROPROCESSOR.get()) == assemblies
+                && count(fixture.block, materials[0]) == assemblies * 2 && count(fixture.block, materials[1]) == assemblies * 2
+                && count(fixture.block, materials[2]) == assemblies && count(fixture.block, materials[3]) == assemblies
+                && count(fixture.block, Items.STONE) == 5;
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void communicationAndControlModulesProduceExactBatches(GameTestHelper helper) {
+        Fixture fixture = fixture(helper);
+        for (String name : new String[]{COMMUNICATION, CONTROL}) {
+            var recipe = fixture.recipe(name);
+            Item module = name.equals(COMMUNICATION) ? HomeCoreItems.HOMELINK_COMMUNICATION_MODULE.get()
+                    : HomeCoreItems.HOMELINK_CONTROL_MODULE.get();
+            helper.assertTrue(recipe.value().result().is(module) && recipe.value().result().getCount() == 1,
+                    "Incorrect module recipe result: " + name);
+            for (int quantity : new int[]{1, 8, 32, 64}) {
+                stockModule(fixture, name, quantity);
+                helper.assertTrue(!fixture.block.start(fixture.player, recipe, quantity + 1), "Insufficient module batch accepted: " + name);
+                helper.assertTrue(fixture.block.start(fixture.player, recipe, quantity), "Module batch rejected: " + name + " x" + quantity);
+                helper.assertTrue(fixture.block.materials().stream().allMatch(stack -> stack.isEmpty() || stack.is(Items.STONE)),
+                        "Module materials were not fully reserved: " + name);
+                UUID session = fixture.sessionId();
+                var assembly = fixture.block.saveWithoutMetadata(helper.getLevel().registryAccess()).getCompound("Assembly");
+                helper.assertTrue(assembly.getInt("Duration") <= 80, "Batch animation exceeds four seconds: " + name);
+                helper.assertTrue(!fixture.block.place(fixture.player, session, 0, 1)
+                        && fixture.block.saveWithoutMetadata(helper.getLevel().registryAccess()).getCompound("Assembly").getInt("Mask") == 0,
+                        "Wrong module placement accepted: " + name);
+                fixture.validate();
+                fixture.finish();
+                helper.assertTrue(fixture.block.phase() == 3 && fixture.block.getItem(9).is(module)
+                        && fixture.block.getItem(9).getCount() == quantity, "Module batch output incorrect: " + name + " x" + quantity);
+                helper.assertTrue(fixture.block.materials().stream().allMatch(stack -> stack.isEmpty() || stack.is(Items.STONE))
+                        && count(fixture.block, Items.STONE) == 5, "Module batch consumption incorrect: " + name);
+                fixture.finish();
+                helper.assertTrue(fixture.block.getItem(9).getCount() == quantity, "Module batch produced twice: " + name);
+                fixture.block.removeItem(9, 64);
+            }
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void moduleReservationsRecoverAndRespectOutput(GameTestHelper helper) {
+        Fixture fixture = fixture(helper);
+        for (String name : new String[]{COMMUNICATION, CONTROL}) {
+            var recipe = fixture.recipe(name);
+            stockModule(fixture, name, 16);
+            for (int scenario = 0; scenario < 4; scenario++) {
+                helper.assertTrue(fixture.block.start(fixture.player, recipe, 16), "Module reservation rejected before scenario " + scenario);
+                UUID id = fixture.sessionId();
+                helper.assertTrue(fixture.block.place(fixture.player, id, 0, 0), "Correct module placement rejected");
+                if (scenario == 0) fixture.block.cancel(fixture.player, id);
+                else if (scenario == 1) fixture.menu.removed(fixture.player);
+                else if (scenario == 2) fixture.tick(); // FakePlayer is absent from the connected-player roster.
+                else {
+                    var saved = fixture.block.saveWithoutMetadata(helper.getLevel().registryAccess());
+                    fixture.block.loadWithComponents(saved, helper.getLevel().registryAccess());
+                    fixture.tick();
+                }
+                helper.assertTrue(!fixture.block.locked() && moduleStock(fixture, name, 16) && fixture.block.getItem(9).isEmpty(),
+                        "Module materials changed after recovery scenario " + scenario + ": " + name);
+            }
+            Item other = name.equals(COMMUNICATION) ? HomeCoreItems.HOMELINK_CONTROL_MODULE.get() : HomeCoreItems.HOMELINK_COMMUNICATION_MODULE.get();
+            Item module = name.equals(COMMUNICATION) ? HomeCoreItems.HOMELINK_COMMUNICATION_MODULE.get() : HomeCoreItems.HOMELINK_CONTROL_MODULE.get();
+            fixture.block.setItem(9, new ItemStack(other));
+            helper.assertTrue(!fixture.block.start(fixture.player, recipe, 1), "Module batch accepted into a foreign output");
+            fixture.block.setItem(9, new ItemStack(module, 60));
+            helper.assertTrue(!fixture.block.start(fixture.player, recipe, 8), "Module batch overflowed the output");
+            helper.assertTrue(moduleStock(fixture, name, 16), "Rejected module batch changed materials");
+            helper.assertTrue(fixture.block.start(fixture.player, recipe, 4), "Fitting module batch rejected");
+            fixture.validate();
+            fixture.finish();
+            helper.assertTrue(fixture.block.getItem(9).is(module) && fixture.block.getItem(9).getCount() == 64,
+                    "Module output did not fill exactly: " + name);
+            fixture.block.removeItem(9, 64);
+        }
+        helper.succeed();
+    }
+
     @GameTest(template = "empty", timeoutTicks = 100)
     public static void craftingRemaindersReturnOnlyAfterProduction(GameTestHelper helper) {
         var manager = helper.getLevel().getRecipeManager();

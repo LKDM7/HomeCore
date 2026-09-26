@@ -1,0 +1,23 @@
+{
+  "type": "homecore:electronics",
+  "category": "components",
+  "ingredients": [
+    { "ingredient": { "item": "homecore:homelink_circuit_board" }, "count": 1 },
+    { "ingredient": { "item": "homecore:homelink_microprocessor" }, "count": 1 },
+    { "ingredient": { "item": "minecraft:copper_ingot" }, "count": 2 },
+    { "ingredient": { "item": "minecraft:redstone" }, "count": 2 },
+    { "ingredient": { "item": "minecraft:quartz" }, "count": 1 },
+    { "ingredient": { "item": "minecraft:amethyst_shard" }, "count": 1 }
+  ],
+  "result": { "id": "homecore:homelink_communication_module", "count": 1 },
+  "processing_time": 20,
+  "assembly_layout": [
+    { "id": "board", "label": "assembly.homecore.module_base", "ingredient_index": 0, "x": 20, "y": 100 },
+    { "id": "chip", "label": "assembly.homecore.signal_chip", "ingredient_index": 1, "x": 50, "y": 50 },
+    { "id": "crystal", "label": "assembly.homecore.signal_crystal", "ingredient_index": 5, "x": 50, "y": 0 },
+    { "id": "quartz", "label": "assembly.homecore.quartz_oscillator", "ingredient_index": 4, "x": 80, "y": 100 },
+    { "id": "copper_west", "label": "assembly.homecore.copper_connection", "ingredient_index": 2, "x": 0, "y": 50 },
+    { "id": "copper_east", "label": "assembly.homecore.copper_connection", "ingredient_index": 2, "x": 100, "y": 50 },
+    { "id": "redstone", "label": "assembly.homecore.redstone_signal_nodes", "ingredient_index": 3, "x": 50, "y": 100 }
+  ]
+}

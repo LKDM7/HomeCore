@@ -242,3 +242,26 @@ MAX, les ressources insuffisantes, le glisser-déposer, le clic-clic et la sorti
 Les 48 variantes et le modèle d'item passent le chargement réel de Minecraft.
 Les captures du modèle en jeu et de l'interface ont été examinées. Le contrôle
 du JAR vérifie également les textures d'acier et leur attribution.
+
+## Version 1.7.0 — modules de communication et de contrôle
+
+Deux composants s'ajoutent au circuit imprimé et au microprocesseur :
+`homecore:homelink_communication_module` et `homecore:homelink_control_module`.
+Ils se fabriquent uniquement à l'établi électronique, par le type de recette
+existant `homecore:electronics`, avec chacun un plan d'assemblage propre.
+Les onglets de l'établi suivent l'ordre d'enregistrement des objets produits.
+
+Le 26 septembre 2026, `build` réussit : 101 tests unitaires passent et le contrôle
+du JAR exige les modèles, textures et recettes des deux modules.
+Quatorze GameTests passent dans chacune des exécutions `runPersistence`
+(`write`, puis `read`). Les nouveaux cas vérifient l'enregistrement, la pile de 64,
+la rareté commune, l'infobulle traduite, l'ordre de l'onglet créatif, l'absence de
+recette vanilla et les ingrédients exacts. Ils couvrent aussi les lots de 1, 8, 32
+et 64, un placement erroné, l'annulation, la fermeture, l'absence du joueur, le
+rechargement, une sortie étrangère ou pleine, sans perte ni duplication.
+
+`runWorkbenchSmoke` réussit en anglais et en français. Le client fabrique quatre
+lots de 64 (circuit, microprocesseur, module de communication, module de
+contrôle) par glisser-déposer et clic-clic. Les modèles 3D des quatre composants
+passent le chargement réel de Minecraft. Les captures des deux nouveaux plans
+d'assemblage ont été examinées.

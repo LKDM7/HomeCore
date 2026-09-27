@@ -1,4 +1,4 @@
-# HomeCore 1.7.0
+# HomeCore 1.9.0
 
 English version: [README.en.md](README.en.md).
 
@@ -257,3 +257,9 @@ HomeNetworkManager.setReachabilityPolicy(id, predicate) installe une contrainte 
 ## Renommage
 
 HomeNetworkManager.renameNetwork(id, name) conserve l'UUID, les membres, les appareils et la date de création. Les snapshots de réseau et la sauvegarde reflètent le nouveau nom. Cette API est réservée au code serveur de confiance : un appel provenant d'un joueur doit vérifier MANAGE_NETWORK avant la mutation. Les noms doivent contenir 1 à 128 caractères et ne pas être vides.
+
+## Rattachement des appareils
+
+Un `DashboardDevice` dont le bloc mémorise son réseau peut implémenter `NetworkMember` : réseau enregistré, propriétaire, droit propre à la machine (`canConfigure`) et notification `homeNetworkChanged`. Un Dashboard peut alors lister le rattachement d'une machine et la déplacer sans désynchroniser son bloc.
+
+Pour une demande de joueur, appeler `DashboardAPI.bindDevice(player, device, Optional.of(networkId))`, ou `Optional.empty()` pour détacher. HomeCore exige `canConfigure` et MANAGE_NETWORK sur le réseau de destination et sur le réseau précédent. L'appareil rejoint la destination avant de quitter l'ancien réseau ; rien ne change si une vérification échoue. Un appareil sans `NetworkMember` renvoie `NOT_SUPPORTED`. API 1.5.0.

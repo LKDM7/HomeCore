@@ -1,4 +1,4 @@
-# HomeCore 1.7.0
+# HomeCore 1.9.0
 
 French version: [README.md](README.md).
 
@@ -269,3 +269,9 @@ The development smoke test also checks the command, `set_progress` action and ev
 ## Renaming networks
 
 `HomeNetworkManager.renameNetwork(id, name)` preserves the UUID, members, devices and creation date. Network snapshots and saved data reflect the new name. This API is for trusted server code: calls originating from a player must check MANAGE_NETWORK before mutation. Names must contain 1 to 128 characters and cannot be blank.
+
+## Device binding
+
+A `DashboardDevice` whose block records its network can implement `NetworkMember`: recorded network, owner, machine-specific right (`canConfigure`) and the `homeNetworkChanged` notification. A dashboard can then list a machine's binding and move it without desynchronizing its block.
+
+For a player request, call `DashboardAPI.bindDevice(player, device, Optional.of(networkId))`, or `Optional.empty()` to detach. HomeCore requires `canConfigure` and MANAGE_NETWORK on the destination and on the previous network. The device joins the destination before leaving the old network; nothing changes when a check fails. A device without `NetworkMember` returns `NOT_SUPPORTED`. API 1.5.0.

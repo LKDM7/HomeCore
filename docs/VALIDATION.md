@@ -1,5 +1,18 @@
 # Validation des livraisons
 
+## Publication et CI distante du 29 septembre 2026
+
+Les correctifs ont été appliqués aux dépôts réels et poussés sur `main`.
+Les CI des cinq mods, les publications Maven HomeCore 1.10.0 et Energy 0.2.2,
+ainsi que les cinq GameTests intermods ont réussi sur GitHub Actions.
+Les CI consommateurs utilisent les dépendances publiées sans Maven Local.
+Les SHA, liens vers les exécutions et limites sont consignés dans le
+[rapport de publication](PUBLICATION_1_10.md).
+
+Le compte rendu local ci-dessous conserve les étapes et contraintes rencontrées
+avant cette publication ; ses mentions d'opérations en attente décrivent cet
+état antérieur.
+
 ## HomeCore 1.10.0 — validation locale du 29 septembre 2026
 
 Java 21.0.11, Minecraft 1.21.1, NeoForge 21.1.250 pour HomeCore et 21.1.251 pour

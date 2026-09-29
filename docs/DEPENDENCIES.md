@@ -1,6 +1,6 @@
 # Dépendances et publication
 
-La version préparée de HomeCore est **1.10.0**, avec l’API **1.6.0**, pour Minecraft **1.21.1** et NeoForge **21.1.250**. Une modification locale ne publie aucun artefact et ne met pas automatiquement les autres mods à jour.
+La version publiée de HomeCore est **1.10.0**, avec l’API **1.6.0**, pour Minecraft **1.21.1** et NeoForge **21.1.250**. Une modification locale ne publie aucun artefact et ne met pas automatiquement les autres mods à jour.
 
 ## Publication Maven
 
@@ -64,8 +64,9 @@ Le retrait de `mavenLocal()` des consommateurs et la publication de staging Ener
 ont été validés dans des copies de travail, avec Energy 0.2.2 et HomeCore 1.10.0.
 Le [rapport de validation](VALIDATION.md) détaille les tests et la résolution Maven
 indépendante. Les correctifs préparés sont conservés dans
-`build/homelink-migration-patches`, hors Git ; ils sont maintenant appliqués aux
-dépôts consommateurs. Leur publication distante reste à effectuer. Ils remplacent notamment le bootstrap
+`build/homelink-migration-patches`, hors Git ; ils sont maintenant appliqués et
+poussés aux dépôts consommateurs. HomeCore et Energy sont publiés sur Maven,
+et les CI des consommateurs ont réussi avec ces artefacts. Ils remplacent notamment le bootstrap
 Energy historique qui pointait vers HomeCore 1.9.0.
 
 ## Vérifications
@@ -74,8 +75,9 @@ La CI HomeCore exécute `build test verifyReleaseJar`, puis `runPersistence -Ppe
 
 Le projet [integration-tests](../integration-tests/README.md) charge Energy, Farm,
 Storage et Quarry ensemble. Le [workflow intermods](INTEGRATION_CI.md) permet de
-vérifier cinq commits explicitement choisis. Il reste à publier les changements
-des consommateurs et à migrer leurs branches distantes vers `main` ; un build de
-HomeCore seul ne prouve pas leur compatibilité.
+vérifier cinq commits explicitement choisis. Les cinq dépôts utilisent désormais
+`main` et le workflow intermods a réussi. Le [rapport de publication](PUBLICATION_1_10.md)
+donne les commits et exécutions exacts ; un build de HomeCore seul ne prouve pas
+leur compatibilité.
 
 Références : [publication Gradle dans GitHub Actions](https://docs.github.com/en/actions/tutorials/publish-packages/publish-java-packages-with-gradle), [authentification GitHub Packages](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry), [builds composites Gradle](https://docs.gradle.org/current/userguide/composite_builds.html).

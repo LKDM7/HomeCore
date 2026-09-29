@@ -31,3 +31,6 @@ Validation locale du 29 septembre 2026 : **les cinq GameTests ont réussi** sur
 NeoForge 21.1.251 avec les versions ci-dessus dans les copies locales de validation.
 Les builds natifs et GameTests des consommateurs ont aussi été exécutés séparément.
 Voir les résultats et les limites dans le [rapport HomeCore](../docs/VALIDATION.md).
+
+La validation a ensuite réussi dans GitHub Actions avec les cinq commits poussés.
+Les références exactes figurent dans le [rapport de publication](../docs/PUBLICATION_1_10.md).

@@ -26,17 +26,23 @@ public final class HomeLinkModelSmoke {
         check(client, "homelink_microprocessor", 60);
         check(client, "homelink_communication_module", 60);
         check(client, "homelink_control_module", 50);
+        check(client, "homelink_connector", 60, "block/device_steel");
         checked = true;
         LogUtils.getLogger().info("HOMECORE_HOMELINK_MODELS_OK");
     }
 
     private static void check(Minecraft client, String name, int minimumQuads) {
+        check(client, name, minimumQuads, "item/" + name);
+    }
+
+    private static void check(Minecraft client, String name, int minimumQuads, String texture) {
         var location = ResourceLocation.fromNamespaceAndPath("homecore", name);
         var model = client.getModelManager().getModel(new ModelResourceLocation(location, "inventory"));
         var quads = model.getQuads(null, null, RandomSource.create(), ModelData.EMPTY, null);
         var sprites = quads.stream().map(quad -> quad.getSprite().contents().name()).toList();
         if (!model.isGui3d() || quads.size() < minimumQuads
-                || !sprites.contains(ResourceLocation.fromNamespaceAndPath("homecore", "item/" + name))
+                || sprites.stream().anyMatch(sprite -> sprite.getPath().equals("missingno"))
+                || !sprites.contains(ResourceLocation.fromNamespaceAndPath("homecore", texture))
                 || !sprites.contains(ResourceLocation.fromNamespaceAndPath(
                         "homecore", "item/homelink_model_palette"))) {
             throw new IllegalStateException("HomeLink voxel item model did not bake: " + name

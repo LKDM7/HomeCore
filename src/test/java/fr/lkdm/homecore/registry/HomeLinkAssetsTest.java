@@ -149,9 +149,14 @@ class HomeLinkAssetsTest {
         assertEquals("homecore:homelink_communication_module",
                 recipe.getAsJsonObject("key").getAsJsonObject("C").get("item").getAsString());
         JsonObject model = json("assets/homecore/models/item/homelink_connector.json");
-        String texture = model.getAsJsonObject("textures").get("layer0").getAsString();
-        try (InputStream stream = resource("assets/" + texture.replace(":", "/textures/") + ".png")) {
-            assertNotNull(ImageIO.read(stream));
+        assertEquals("minecraft:block/block", model.get("parent").getAsString());
+        assertTrue(model.getAsJsonArray("elements").size() > 1);
+        for (var entry : model.getAsJsonObject("textures").entrySet()) {
+            String texture = entry.getValue().getAsString();
+            if (!texture.startsWith("homecore:")) continue;
+            try (InputStream stream = resource("assets/" + texture.replace(":", "/textures/") + ".png")) {
+                assertNotNull(ImageIO.read(stream));
+            }
         }
         for (String language : new String[]{"en_us", "fr_fr"}) {
             JsonObject labels = json("assets/homecore/lang/" + language + ".json");

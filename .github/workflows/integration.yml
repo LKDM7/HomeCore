@@ -1,0 +1,169 @@
+name: HomeLink integration tests
+on:
+  workflow_dispatch:
+    inputs:
+      homecore_sha:
+        description: 'HomeCore: SHA complet du commit contenant le harnais et l’API compatible'
+        type: string
+        required: true
+      farm_sha:
+        description: 'HomeLink-Farm: SHA complet compatible'
+        type: string
+        required: true
+      energy_sha:
+        description: 'HomeLink-Energy: SHA complet compatible'
+        type: string
+        required: true
+      storage_sha:
+        description: 'HomeLink-Storage: SHA complet compatible'
+        type: string
+        required: true
+      quarry_sha:
+        description: 'HomeLink-Quarry: SHA complet compatible'
+        type: string
+        required: true
+      farm_version:
+        description: 'Version Farm attendue, vide pour le défaut du harnais'
+        type: string
+      energy_version:
+        description: 'Version Energy attendue, vide pour le défaut du harnais'
+        type: string
+      storage_version:
+        description: 'Version Storage attendue, vide pour le défaut du harnais'
+        type: string
+      quarry_version:
+        description: 'Version Quarry attendue, vide pour le défaut du harnais'
+        type: string
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HOMECORE_SHA: ${{ inputs.homecore_sha }}
+      FARM_SHA: ${{ inputs.farm_sha }}
+      ENERGY_SHA: ${{ inputs.energy_sha }}
+      STORAGE_SHA: ${{ inputs.storage_sha }}
+      QUARRY_SHA: ${{ inputs.quarry_sha }}
+      FARM_VERSION: ${{ inputs.farm_version }}
+      ENERGY_VERSION: ${{ inputs.energy_version }}
+      STORAGE_VERSION: ${{ inputs.storage_version }}
+      QUARRY_VERSION: ${{ inputs.quarry_version }}
+    steps:
+      - name: Require immutable commit references
+        shell: bash
+        run: |
+          for name in HOMECORE_SHA FARM_SHA ENERGY_SHA STORAGE_SHA QUARRY_SHA; do
+            value="${!name}"
+            if [[ ! "$value" =~ ^[0-9a-fA-F]{40}$ ]]; then
+              echo "::error::$name must contain a full 40-character commit SHA."
+              exit 1
+            fi
+          done
+          for name in FARM_VERSION ENERGY_VERSION STORAGE_VERSION QUARRY_VERSION; do
+            value="${!name}"
+            if [[ -n "$value" && ! "$value" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::$name must contain an explicit version or remain empty."
+              exit 1
+            fi
+          done
+      - uses: actions/checkout@v4
+        with:
+          repository: LKDM7/HomeCore
+          ref: ${{ inputs.homecore_sha }}
+          path: HomeCore
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: LKDM7/HomeLink-Farm
+          ref: ${{ inputs.farm_sha }}
+          path: FarmLink
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: LKDM7/HomeLink-Energy
+          ref: ${{ inputs.energy_sha }}
+          path: HomeLinkEnergy
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: LKDM7/HomeLink-Storage
+          ref: ${{ inputs.storage_sha }}
+          path: 'HomeLink Storage'
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: LKDM7/HomeLink-Quarry
+          ref: ${{ inputs.quarry_sha }}
+          path: HomeLinkQuarry
+          persist-credentials: false
+      - name: Verify checked-out commits and record provenance
+        shell: bash
+        run: |
+          mkdir -p integration-evidence
+          verify_commit() {
+            local directory="$1" expected="$2" actual
+            actual="$(git -C "$directory" rev-parse HEAD)"
+            if [[ "$actual" != "${expected,,}" ]]; then
+              echo "::error::Unexpected commit in $directory"
+              exit 1
+            fi
+            printf '%s %s\n' "$actual" "$directory" >> integration-evidence/revisions.txt
+          }
+          verify_commit HomeCore "$HOMECORE_SHA"
+          verify_commit FarmLink "$FARM_SHA"
+          verify_commit HomeLinkEnergy "$ENERGY_SHA"
+          verify_commit 'HomeLink Storage' "$STORAGE_SHA"
+          verify_commit HomeLinkQuarry "$QUARRY_SHA"
+          test -f HomeCore/integration-tests/build.gradle
+          test -f HomeCore/integration-tests/settings.gradle
+          printf 'Workflow commit: %s\nRun: %s/%s/actions/runs/%s\n' \
+            "$GITHUB_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" \
+            > integration-evidence/workflow.txt
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run GameTests with all five production mods
+        working-directory: HomeCore
+        shell: bash
+        run: |
+          arguments=()
+          for module in farm energy storage quarry; do
+            name="${module^^}_VERSION"
+            value="${!name}"
+            if [[ -n "$value" ]]; then
+              arguments+=("-P${module}_version=$value")
+              printf '%s=%s\n' "$module" "$value" >> ../integration-evidence/version-overrides.txt
+            fi
+          done
+          bash gradlew -p integration-tests runGameTestServer --no-daemon --no-configuration-cache "${arguments[@]}"
+      - name: Record checksums of HomeCore artifacts under test
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p integration-evidence
+          if [[ -d HomeCore/build/libs ]]; then
+            find HomeCore/build/libs -maxdepth 1 -type f -name '*.jar' -print0 \
+              | sort -z | xargs -0 -r sha256sum > integration-evidence/homecore-sha256.txt
+          fi
+      - name: Preserve integration reports and exact revisions
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: homelink-integration-evidence
+          path: |
+            integration-evidence/
+            HomeCore/integration-tests/build/server/logs/
+            HomeCore/integration-tests/build/reports/
+            HomeCore/integration-tests/build/test-results/
+            HomeCore/integration-tests/build/server/*.xml
+      - name: Preserve HomeCore artifacts separately
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: homecore-under-integration-test
+          if-no-files-found: ignore
+          path: HomeCore/build/libs/*.jar

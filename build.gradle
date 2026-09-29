@@ -126,6 +126,12 @@ def verifyReleaseJar = tasks.register('verifyReleaseJar') {
                 throw new GradleException('Development or test classes found in release JAR.')
             }
             for (def entry : ['fr/lkdm/homecore/HomeCore.class', 'fr/lkdm/homecore/api/DashboardAPI.class',
+                             'fr/lkdm/homecore/api/item/ItemPort.class',
+                             'fr/lkdm/homecore/api/item/ItemPortType.class',
+                             'fr/lkdm/homecore/api/item/ItemApi.class',
+                             'fr/lkdm/homecore/item/HomeLinkConnectorItem.class',
+                             'assets/homecore/models/item/homelink_connector.json',
+                             'data/homecore/recipe/homelink_connector.json',
                              'fr/lkdm/homecore/registry/HomeCoreItems.class',
                              'fr/lkdm/homecore/registry/HomeCoreCreativeTabs.class',
                              'assets/homecore/models/item/homelink_circuit_board.json',
@@ -170,6 +176,48 @@ def verifyReleaseJar = tasks.register('verifyReleaseJar') {
     }
 }
 tasks.named('check') { dependsOn verifyReleaseJar }
+
+def apiVersionSource = layout.projectDirectory.file('src/main/java/fr/lkdm/homecore/api/DashboardAPI.java')
+def releaseReadmes = files('README.md', 'README.en.md')
+def verifyDocumentation = tasks.register('verifyDocumentation') {
+    group = 'verification'
+    description = 'Checks current README release coordinates and API version against the source of truth.'
+    inputs.files(releaseReadmes)
+    inputs.file(apiVersionSource)
+    inputs.property('releaseVersion', releaseVersion)
+    doLast {
+        def apiMatch = apiVersionSource.asFile.getText('UTF-8') =~ /API_VERSION\s*=\s*"([^"]+)"/
+        if (!apiMatch.find()) throw new GradleException('DashboardAPI.API_VERSION was not found.')
+        def apiVersion = apiMatch.group(1)
+        releaseReadmes.files.each { readme ->
+            def content = readme.getText('UTF-8')
+            if (!content.readLines().first().equals('# HomeCore ' + releaseVersion)) {
+                throw new GradleException("${readme.name}: release heading differs from mod_version.")
+            }
+            def documentedApi = content =~ /DashboardAPI\.API_VERSION\s*=\s*"([^"]+)"/
+            if (!documentedApi.find()) throw new GradleException("${readme.name}: missing API version.")
+            documentedApi.reset()
+            while (documentedApi.find()) {
+                if (documentedApi.group(1) != apiVersion) {
+                    throw new GradleException("${readme.name}: API version differs from DashboardAPI.")
+                }
+            }
+            for (def pattern : [/fr\.lkdm\.homecore:homecore:([0-9.]+)/, /homecore-([0-9.]+)\.jar/,
+                                /versionRange="\[([0-9.]+),2\.0\.0\)"/]) {
+                def matches = content =~ pattern
+                if (!matches.find()) throw new GradleException("${readme.name}: missing release example matching ${pattern}.")
+                matches.reset()
+                while (matches.find()) {
+                    if (matches.group(1) != releaseVersion) {
+                        throw new GradleException("${readme.name}: outdated release example ${matches.group()}.")
+                    }
+                }
+            }
+        }
+        logger.lifecycle('README release and API versions verified: {} / {}', releaseVersion, apiVersion)
+    }
+}
+tasks.named('check') { dependsOn verifyDocumentation }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
@@ -354,8 +402,33 @@ publishing {
         register('mavenJava', MavenPublication) {
             artifactId = mod_id
             from components.java
+            pom {
+                name = 'HomeCore'
+                description = 'Shared API for connected HomeLink devices.'
+                url = 'https://github.com/LKDM7/HomeCore'
+                licenses { license { name = 'Apache License, Version 2.0'; url = 'https://www.apache.org/licenses/LICENSE-2.0.txt' } }
+                scm { url = 'https://github.com/LKDM7/HomeCore'; connection = 'scm:git:https://github.com/LKDM7/HomeCore.git' }
+            }
         }
     }
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = uri('https://maven.pkg.github.com/LKDM7/HomeCore')
+            credentials {
+                username = providers.gradleProperty('githubUser').orElse(providers.environmentVariable('GITHUB_ACTOR')).getOrElse('')
+                password = providers.gradleProperty('githubToken').orElse(providers.environmentVariable('GITHUB_TOKEN')).getOrElse('')
+            }
+        }
+        maven {
+            name = 'Staging'
+            url = layout.buildDirectory.dir('staging-repository')
+        }
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach {
+    dependsOn tasks.named('check')
 }
 
 idea {

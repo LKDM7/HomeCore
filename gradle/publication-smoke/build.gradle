@@ -1,0 +1,80 @@
+// A separate consumer build: no composite substitution, external repository or Maven local.
+plugins { id 'base' }
+
+def producerDirectory = file('../..')
+def producerProperties = new Properties()
+new File(producerDirectory, 'gradle.properties').withInputStream { producerProperties.load(it) }
+def publishedGroup = producerProperties.getProperty('mod_group_id')
+def publishedArtifact = producerProperties.getProperty('mod_id')
+def publishedVersion = producerProperties.getProperty('mod_version')
+def coordinates = "${publishedGroup}:${publishedArtifact}:${publishedVersion}"
+
+repositories {
+    maven {
+        name = 'StagingOnly'
+        url = new File(producerDirectory, 'build/staging-repository').toURI()
+        metadataSources { mavenPom(); artifact() }
+        content { includeModule publishedGroup, publishedArtifact }
+    }
+}
+
+def artifacts = [binary: '', sources: ':sources', javadoc: ':javadoc', pom: '@pom', module: '@module']
+artifacts.each { label, suffix ->
+    configurations.create(label) {
+        canBeResolved = true
+        canBeConsumed = false
+        transitive = false
+    }
+    dependencies.add(label, coordinates + suffix)
+}
+
+def resolvedArtifacts = artifacts.collectEntries { label, ignored -> [(label): configurations.getByName(label)] }
+tasks.register('verifyPublishedArtifacts') {
+    group = 'verification'
+    description = 'Resolves and checks every published artifact from the isolated staging Maven repository.'
+    notCompatibleWithConfigurationCache('This independent consumer inspects resolved publication configurations.')
+    inputs.files(resolvedArtifacts.values())
+    inputs.property('coordinates', coordinates)
+    doLast {
+        def filesByKind = resolvedArtifacts.collectEntries { label, configuration -> [(label): configuration.singleFile] }
+        def pom = new XmlSlurper().parse(filesByKind.pom)
+        if (pom.groupId.text() != publishedGroup || pom.artifactId.text() != publishedArtifact
+                || pom.version.text() != publishedVersion) {
+            throw new GradleException('Published POM coordinates do not match gradle.properties.')
+        }
+        if (pom.dependencies.dependency.any { it.groupId.text().startsWith('org.junit') }) {
+            throw new GradleException('Test dependencies leaked into the published POM.')
+        }
+        def module = new groovy.json.JsonSlurper().parse(filesByKind.module)
+        if (module.component.group != publishedGroup || module.component.module != publishedArtifact
+                || module.component.version != publishedVersion) {
+            throw new GradleException('Published Gradle module coordinates do not match gradle.properties.')
+        }
+        ['binary': ['fr/lkdm/homecore/api/item/ItemPort.class', 'META-INF/neoforge.mods.toml'],
+         'sources': ['fr/lkdm/homecore/api/item/ItemPort.java'],
+         'javadoc': ['fr/lkdm/homecore/api/item/ItemPort.html']].each { label, expected ->
+            new java.util.zip.ZipFile(filesByKind[label]).withCloseable { archive ->
+                expected.each { entry ->
+                    if (archive.getEntry(entry) == null) throw new GradleException("Missing ${entry} in published ${label}.")
+                }
+                if (archive.entries().any { it.name.startsWith('fr/lkdm/homecore/verification/')
+                        || it.name.startsWith('fr/lkdm/homecore/development/') || it.name.startsWith('org/junit/') }) {
+                    throw new GradleException("Development content leaked into published ${label}.")
+                }
+                if (label == 'binary') {
+                    def metadata = archive.getInputStream(archive.getEntry('META-INF/neoforge.mods.toml')).withCloseable { it.getText('UTF-8') }
+                    if (!metadata.contains('version = "' + publishedVersion + '"') || metadata.contains('${')) {
+                        throw new GradleException('Published JAR metadata does not match its Maven version.')
+                    }
+                }
+            }
+            def classifier = label == 'binary' ? '' : '-' + label
+            def producerJar = new File(producerDirectory, "build/libs/${publishedArtifact}-${publishedVersion}${classifier}.jar")
+            if (!producerJar.isFile() || java.nio.file.Files.mismatch(producerJar.toPath(), filesByKind[label].toPath()) != -1L) {
+                throw new GradleException("Published ${label} differs from the validated producer artifact.")
+            }
+        }
+        logger.lifecycle('Resolved and verified {} from StagingOnly, including sources, Javadoc, POM and module metadata.', coordinates)
+    }
+}
+tasks.named('check') { dependsOn tasks.named('verifyPublishedArtifacts') }

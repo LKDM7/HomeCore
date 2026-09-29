@@ -22,6 +22,7 @@ public final class HomeCoreCreativeTabs {
                         output.accept(HomeCoreItems.HOMELINK_MICROPROCESSOR.get());
                         output.accept(HomeCoreItems.HOMELINK_COMMUNICATION_MODULE.get());
                         output.accept(HomeCoreItems.HOMELINK_CONTROL_MODULE.get());
+                        output.accept(HomeCoreItems.HOMELINK_CONNECTOR.get());
                         output.accept(HomeCoreItems.ELECTRONICS_WORKBENCH.get());
                     })
                     .build());

@@ -73,13 +73,13 @@ public interface NetworkMember {
         Objects.requireNonNull(canManageNetwork, "canManageNetwork");
         if (!canConfigureDevice) return BindResult.DENIED;
         Optional<UUID> current = member.homeNetwork();
-        if (current.equals(target)) return BindResult.UNCHANGED;
         Optional<HomeNetwork> destination = Optional.empty();
         if (target.isPresent()) {
             destination = networks.getNetwork(target.get());
             if (destination.isEmpty()) return BindResult.UNKNOWN_NETWORK;
-            if (!canManageNetwork.test(target.get())) return BindResult.DENIED;
         }
+        if (current.equals(target)) return BindResult.UNCHANGED;
+        if (target.isPresent() && !canManageNetwork.test(target.get())) return BindResult.DENIED;
         // A deleted previous network needs no permission: there is nothing left to leave.
         boolean leave = current.isPresent() && networks.getNetwork(current.get()).isPresent();
         if (leave && !canManageNetwork.test(current.get())) return BindResult.DENIED;

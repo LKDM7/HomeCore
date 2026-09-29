@@ -30,7 +30,7 @@ public final class DashboardAPI {
     private static final DeviceProviderRegistry PROVIDERS = new DeviceProviderRegistry();
     private static final CapabilityRegistry CAPABILITIES = new CapabilityRegistry();
     /** Semantic version of the public API, independent of the mod artifact version. */
-    public static final String API_VERSION = "1.5.0";
+    public static final String API_VERSION = "1.6.0";
 
     private DashboardAPI() {
     }

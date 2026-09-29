@@ -18,6 +18,8 @@ HomeCore also adds four shared crafting components and the **HomeLink Electronic
 
 Other HomeLink mods can add their own workbench recipes through HomeCore's extensible recipe system. For example, a farm or storage add-on can use the shared components without requiring the other add-on. HomeCore does not include those add-on machines; install the HomeLink mods you want to use alongside it.
 
+The **HomeLink Connector** links compatible devices to a shared HomeNetwork. Select a network by using the tool in the air, then use it on a device. Machine ownership and network permissions are checked on the server. HomeCore also provides shared directional item ports for compatible automation mods.
+
 The workbench can be crafted with vanilla materials:
 
 ```text

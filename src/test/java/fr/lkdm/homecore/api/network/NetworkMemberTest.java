@@ -81,4 +81,37 @@ class NetworkMemberTest {
                 NetworkMember.move(manager, device, machine, Optional.of(target.id()), true, target.id()::equals));
         assertEquals(Optional.of(target.id()), machine.homeNetwork());
     }
+
+    @Test void detachingRequiresMachineAndCurrentNetworkPermission() {
+        var manager = new HomeNetworkManager();
+        UUID device = UUID.randomUUID();
+        var network = manager.createNetwork("Protected", UUID.randomUUID());
+        var machine = new Machine();
+        NetworkMember.move(manager, device, machine, Optional.of(network.id()), true, id -> true);
+        assertEquals(NetworkMember.BindResult.DENIED,
+                NetworkMember.move(manager, device, machine, Optional.empty(), true, id -> false));
+        assertEquals(NetworkMember.BindResult.DENIED,
+                NetworkMember.move(manager, device, machine, Optional.empty(), false, id -> true));
+        assertEquals(Optional.of(network.id()), machine.homeNetwork());
+        assertEquals(Set.of(device), manager.getDevices(network.id()));
+        assertEquals(1, machine.notifications);
+    }
+
+    @Test void selectingDeletedCurrentNetworkReportsUnknownWithoutChangingTheMachine() {
+        var manager = new HomeNetworkManager();
+        UUID device = UUID.randomUUID();
+        var deleted = manager.createNetwork("Deleted", UUID.randomUUID());
+        var machine = new Machine();
+        NetworkMember.move(manager, device, machine, Optional.of(deleted.id()), true, id -> true);
+        manager.deleteNetwork(deleted.id());
+
+        assertEquals(NetworkMember.BindResult.UNKNOWN_NETWORK,
+                NetworkMember.move(manager, device, machine, Optional.of(deleted.id()), true, id -> true));
+        assertEquals(Optional.of(deleted.id()), machine.homeNetwork());
+        assertEquals(1, machine.notifications, "Rejected binding must not notify or mutate the machine");
+        assertTrue(manager.getAll().isEmpty(), "Rejected binding must not recreate a network");
+        assertEquals(NetworkMember.BindResult.DENIED,
+                NetworkMember.move(manager, device, machine, Optional.of(deleted.id()), false, id -> true),
+                "Machine permissions must still be checked before disclosing network state");
+    }
 }

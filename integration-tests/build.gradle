@@ -1,0 +1,96 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.147'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.blamejared.com/'; content { includeGroup 'mezz.jei'; includeGroup 'net.mezzdev.config' } }
+}
+dependencies { implementation "fr.lkdm.homecore:homecore:${homecore_version}" }
+
+// Les quatre dépôts sont lus sans y écrire. Seuls leurs sources de production sont compilés.
+def modules = [
+    energy: [directory: 'HomeLinkEnergy', id: 'homelink_energy', version: '0.2.2'],
+    farm: [directory: 'FarmLink', id: 'homelink_farm', version: '1.2.0'],
+    storage: [directory: 'HomeLink Storage', id: 'homelink_storage', version: '1.1.0'],
+    quarry: [directory: 'HomeLinkQuarry', id: 'homelink_quarry', version: '1.2.0']
+]
+modules.each { name, spec ->
+    spec.version = providers.gradleProperty("${name}_version").getOrElse(spec.version)
+    def directory = file(providers.gradleProperty("${name}_dir").getOrElse("../../${spec.directory}"))
+    def values = new Properties()
+    if (!new File(directory, 'gradle.properties').isFile()) throw new GradleException("Dépôt absent : ${directory}")
+    new File(directory, 'gradle.properties').withInputStream { values.load(it) }
+    if (values.mod_version != spec.version) throw new GradleException("${name} exige la version ${spec.version}, trouvée ${values.mod_version}")
+    // Le harnais teste explicitement la nouvelle API, sans modifier les métadonnées des voisins.
+    values.homecore_version_range = "[${homecore_version},2.0.0)"
+    def metadata = tasks.register("${name}Metadata", ProcessResources) {
+        inputs.properties values
+        from new File(directory, 'src/main/templates')
+        expand values
+        into layout.buildDirectory.dir("metadata/${name}")
+    }
+    def sources = sourceSets.create(name) {
+        java.srcDir new File(directory, 'src/main/java')
+        resources.srcDir new File(directory, 'src/main/resources')
+        resources.srcDir metadata
+    }
+    configurations.named(sources.implementationConfigurationName) { extendsFrom configurations.implementation }
+    if (name == 'storage') {
+        dependencies.add(sources.compileOnlyConfigurationName, "mezz.jei:jei-1.21.1-common-api:${values.jei_version}")
+        dependencies.add(sources.compileOnlyConfigurationName, "mezz.jei:jei-1.21.1-neoforge-api:${values.jei_version}")
+    }
+    sourceSets.main.compileClasspath += sources.output
+    sourceSets.main.runtimeClasspath += sources.output
+}
+
+neoForge {
+    version = project.neo_version
+    modules.each { name, spec ->
+        addModdingDependenciesTo sourceSets[name]
+        mods.create(spec.id) { sourceSet sourceSets[name] }
+    }
+    mods { homelink_integration { sourceSet sourceSets.main } }
+    runs {
+        gameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = file('build/server')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'homelink_integration'
+            loadedMods = mods.toList()
+        }
+    }
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
+
+// Structure vide bornée à 12 x 8 x 12, produite en NBT sans outil externe.
+def structures = tasks.register('generateTestStructure') {
+    def target = layout.buildDirectory.file('generated/test-structures/data/homelink_integration/structure/empty.nbt')
+    outputs.file target
+    doLast {
+        def file = target.get().asFile
+        file.parentFile.mkdirs()
+        new DataOutputStream(new java.util.zip.GZIPOutputStream(new FileOutputStream(file))).withCloseable { out ->
+            out.writeByte(10); out.writeUTF('')
+            out.writeByte(3); out.writeUTF('DataVersion'); out.writeInt(3955)
+            out.writeByte(9); out.writeUTF('size'); out.writeByte(3); out.writeInt(3)
+            [12, 8, 12].each { out.writeInt(it) }
+            out.writeByte(9); out.writeUTF('palette'); out.writeByte(10); out.writeInt(1)
+            out.writeByte(8); out.writeUTF('Name'); out.writeUTF('minecraft:air'); out.writeByte(0)
+            ['blocks', 'entities'].each { out.writeByte(9); out.writeUTF(it); out.writeByte(10); out.writeInt(0) }
+            out.writeByte(0)
+        }
+    }
+}
+sourceSets.main.resources.srcDir(layout.buildDirectory.dir('generated/test-structures'))
+tasks.named('processResources') { dependsOn structures }
+tasks.named('runGameTestServer') {
+    doFirst {
+        def config = file('build/server/server.properties')
+        config.parentFile.mkdirs()
+        if (!config.exists()) config.text = ''
+    }
+}
+// Ce projet est uniquement un harnais de test, pas un mod distribuable.
+tasks.named('jar') { enabled = false }

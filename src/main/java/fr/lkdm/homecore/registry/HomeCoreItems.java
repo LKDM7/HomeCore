@@ -15,6 +15,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class HomeCoreItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(HomeCore.MOD_ID);
 
+    public static final DeferredItem<fr.lkdm.homecore.item.HomeLinkConnectorItem> HOMELINK_CONNECTOR = ITEMS.register(
+            "homelink_connector", () -> new fr.lkdm.homecore.item.HomeLinkConnectorItem(new Item.Properties().stacksTo(1)));
+
     public static final DeferredItem<Item> HOMELINK_CIRCUIT_BOARD = ITEMS.registerSimpleItem(
             "homelink_circuit_board", component("homelink_circuit_board"));
     public static final DeferredItem<Item> HOMELINK_MICROPROCESSOR = ITEMS.registerSimpleItem(

@@ -141,6 +141,29 @@ class HomeLinkAssetsTest {
         assertEquals(java.util.Set.of("single", "left"), owners);
     }
 
+    @Test
+    void connectorHasCraftingRecipeModelAndEveryBindingOutcomeTranslation() throws IOException {
+        JsonObject recipe = json("data/homecore/recipe/homelink_connector.json");
+        assertEquals("minecraft:crafting_shaped", recipe.get("type").getAsString());
+        assertEquals("homecore:homelink_connector", recipe.getAsJsonObject("result").get("id").getAsString());
+        assertEquals("homecore:homelink_communication_module",
+                recipe.getAsJsonObject("key").getAsJsonObject("C").get("item").getAsString());
+        JsonObject model = json("assets/homecore/models/item/homelink_connector.json");
+        String texture = model.getAsJsonObject("textures").get("layer0").getAsString();
+        try (InputStream stream = resource("assets/" + texture.replace(":", "/textures/") + ".png")) {
+            assertNotNull(ImageIO.read(stream));
+        }
+        for (String language : new String[]{"en_us", "fr_fr"}) {
+            JsonObject labels = json("assets/homecore/lang/" + language + ".json");
+            assertTrue(labels.has("item.homecore.homelink_connector"));
+            assertTrue(labels.has("item.homecore.homelink_connector.tooltip"));
+            for (var result : fr.lkdm.homecore.api.network.NetworkMember.BindResult.values()) {
+                String key = "message.homecore.connector." + result.name().toLowerCase(java.util.Locale.ROOT);
+                assertTrue(labels.has(key), "Missing " + language + " outcome " + key);
+            }
+        }
+    }
+
     private static JsonObject json(String path) throws IOException {
         try (InputStream stream = resource(path);
              InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {

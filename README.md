@@ -1,14 +1,14 @@
-# HomeCore 1.9.0
+# HomeCore 1.10.0
 
-English version: [README.en.md](README.en.md).
+Version anglaise : [README.en.md](README.en.md).
 
-CurseForge description (English): [CURSEFORGE_DESCRIPTION.md](CURSEFORGE_DESCRIPTION.md).
+Description CurseForge en anglais : [CURSEFORGE_DESCRIPTION.md](CURSEFORGE_DESCRIPTION.md).
 
-CurseForge publishing setup: [English README](README.en.md#publish-to-curseforge).
+Configuration de publication CurseForge : [README anglais](README.en.md#publish-to-curseforge).
 
 API commune pour les appareils et réseaux d'une base Minecraft. HomeCore ne dépend d'aucun mod consommateur : Home Dashboard, Farm Monitor et une carte holographique peuvent utiliser ses contrats sans que HomeCore connaisse leurs implémentations.
 
-Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API : `DashboardAPI.API_VERSION = "1.3.0"`.
+Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API : `DashboardAPI.API_VERSION = "1.6.0"`.
 
 ## Construire et installer
 
@@ -19,13 +19,13 @@ Configurer `JAVA_HOME` vers un JDK 21 puis utiliser le wrapper :
 ./gradlew.bat runClient
 ```
 
-Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.7.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
+Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.10.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
 
-Pour développer un mod consommateur, publier d'abord localement HomeCore avec `./gradlew.bat publishToMavenLocal`, puis ajouter dans son projet ModDevGradle :
+Pour développer un mod consommateur, utiliser une version publiée explicite. Le dépôt Maven et le mode composite local sont décrits dans [DEPENDENCIES.md](docs/DEPENDENCIES.md). Dans son projet ModDevGradle :
 
 ```groovy
-repositories { mavenLocal() }
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.7.0' }
+// Configurer le dépôt Maven selon docs/DEPENDENCIES.md.
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.10.0' }
 ```
 
 Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identifiant :
@@ -34,65 +34,71 @@ Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identif
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.7.0,2.0.0)"
+versionRange="[1.10.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
 
-Aucun dépôt distant de distribution n'est présumé. La publication locale est une commande à exécuter explicitement, pas une étape de `build`.
+Le build ne publie rien. Le développement simultané de plusieurs mods utilise un build composite explicite ; il ne télécharge ni ne met à jour les sources depuis GitHub.
 
-## HomeLink Components
+## Composants HomeLink
+
+Les nouveaux contrats d'intégration sont décrits dans [Ports d'objets](docs/ITEM_PORTS.md)
+et le [guide du connecteur HomeLink](docs/CONNECTOR.md).
+La [migration 1.10](docs/MIGRATION_1_10.md) précise l'ordre de livraison. Les
+[tests intermods](integration-tests/README.md) et leur [workflow CI](docs/INTEGRATION_CI.md)
+vérifient les vrais appareils de plusieurs mods sur le même serveur.
 
 ### HomeLink Circuit Board
 
-Basic electronic component used by HomeLink-compatible devices. Assembled exclusively in the Electronics Workbench from vanilla Copper, Redstone and Quartz. Each assembly yields two boards.
+Composant électronique de base des appareils HomeLink. Il s'assemble exclusivement dans l'établi électronique avec du cuivre, de la redstone et du quartz vanilla. Chaque assemblage produit deux cartes.
 
 ### HomeLink Microprocessor
 
-Advanced processing component used by more complex HomeLink devices. Assembled exclusively in the Electronics Workbench using a HomeLink Circuit Board and vanilla Gold Nuggets, Copper, Redstone and Quartz.
+Composant de traitement des appareils HomeLink complexes. Il s'assemble exclusivement dans l'établi électronique avec une carte HomeLink, des pépites d'or, du cuivre, de la redstone et du quartz.
 
 ### HomeLink Communication Module
 
-Communication, networking and sensing component for HomeLink devices that transmit data or detect signals. Assembled exclusively in the Electronics Workbench from a HomeLink Circuit Board, a HomeLink Microprocessor and vanilla Copper, Redstone, Quartz and an Amethyst Shard.
+Module de communication, de réseau et de détection. Il s'assemble exclusivement dans l'établi électronique avec une carte HomeLink, un microprocesseur HomeLink, du cuivre, de la redstone, du quartz et un éclat d'améthyste.
 
 ### HomeLink Control Module
 
-Machine control and automation component for HomeLink devices that act on the world: motors, mechanisms and automated machines. Assembled exclusively in the Electronics Workbench from a HomeLink Circuit Board, a HomeLink Microprocessor, a Comparator and vanilla Copper, Redstone and Iron.
+Module de commande des moteurs, mécanismes et machines automatisées. Il s'assemble exclusivement dans l'établi électronique avec une carte HomeLink, un microprocesseur HomeLink, un comparateur, du cuivre, de la redstone et du fer.
 
-### HomeLink Electronics Components
+### Identifiants des composants
 
-| Component | ID | Role |
+| Composant | ID | Rôle |
 | --- | --- | --- |
-| Circuit Board | `homecore:homelink_circuit_board` | Basic electronics. |
-| Microprocessor | `homecore:homelink_microprocessor` | Processing and logic. |
-| Communication Module | `homecore:homelink_communication_module` | Communication, networking and sensing. |
-| Control Module | `homecore:homelink_control_module` | Machine control and automation. |
+| Carte électronique | `homecore:homelink_circuit_board` | Électronique de base. |
+| Microprocesseur | `homecore:homelink_microprocessor` | Traitement et logique. |
+| Module de communication | `homecore:homelink_communication_module` | Communication, réseau et détection. |
+| Module de contrôle | `homecore:homelink_control_module` | Commande et automatisation. |
 
-All four are made in the Electronics Workbench according to their current recipes, and none has a vanilla crafting-table recipe. The two modules are specialised components, not higher tiers of the board or processor. These IDs are stable: consumer mods can reference them directly without depending on each other. HomeCore itself does not depend on any consumer mod.
+Ces quatre composants se fabriquent à l'établi électronique. Les deux modules ont chacun leur fonction propre. Leurs identifiants sont stables : les mods consommateurs peuvent les utiliser sans dépendre les uns des autres. HomeCore ne dépend d'aucun de ces mods.
 
-## HomeLink Electronics Workbench
+## Établi électronique HomeLink
 
-`homecore:electronics_workbench` is the shared assembly station for HomeLink electronics. It requires no energy or fuel. Craft it in a vanilla crafting table using this pattern:
+`homecore:electronics_workbench` est l'établi commun d'assemblage électronique. Il ne consomme ni énergie ni combustible. Il se fabrique à la table de craft avec cette disposition :
 
 ```text
-I R I    I = Iron Ingot       R = Redstone
-C W C    C = Copper Ingot     W = Crafting Table
-P P P    P = Any Planks
+I R I    I = Lingot de fer       R = Redstone
+C W C    C = Lingot de cuivre    W = Table de craft
+P P P    P = Planches quelconques
 ```
 
-The workbench occupies two adjacent blocks, with a continuous countertop and one shared inventory. Leave both spaces clear when placing it. Either half opens the same interface; breaking either half recovers one workbench and its contents in survival. Existing single-block workbenches remain usable with their saved contents; break and replace them to adopt the wider shape.
+L'établi occupe deux blocs adjacents, avec un plan de travail continu et un inventaire partagé. Laisser les deux cases libres lors de la pose. Chaque moitié ouvre la même interface ; en survie, casser l'une d'elles rend un seul établi et son contenu. Les anciens établis d'un bloc restent utilisables avec leur inventaire sauvegardé ; les casser puis les reposer applique la nouvelle largeur.
 
-Its steel frame, recessed interface panels and warm metallic accents follow HomeLink Farm's visual style. The shared steel textures are bundled with HomeCore; HomeLink Farm is not required.
+Son cadre en acier et ses panneaux encastrés reprennent le style visuel de HomeLink Farm. Les textures d'acier sont incluses dans HomeCore ; Farm n'est pas requis.
 
-Place materials in the nine input slots grouped on the left, select a component directly from its icon tab and choose the number of **finished items** (up to 64). Quantities follow the recipe yield: circuit boards advance in pairs; microprocessors and modules advance individually. Quick quantities and a MAX button simplify batch selection. Ingredient icons show available and required counts before assembly. Output storage stays visible alongside the material grid.
+Déposer les matériaux dans les neuf cases d'entrée à gauche, choisir un composant par son onglet, puis le nombre d'**objets finis**, jusqu'à 64. Les cartes se produisent par paires ; les microprocesseurs et modules à l'unité. Les quantités rapides et le bouton MAX simplifient le choix du lot. Les ingrédients affichent les quantités disponibles et nécessaires. La sortie reste visible à côté des matériaux.
 
-Assemble one prototype per batch, using drag and drop or clicking a part and then its matching socket. Correct placements snap into place; mistakes cost no materials. A short production animation follows validation, then the completed batch appears in the output slot.
+Assembler un prototype par lot, par glisser-déposer ou en cliquant sur une pièce puis sur son emplacement. Les placements corrects s'enclenchent ; une erreur ne consomme aucun matériau. Une courte animation suit la validation, puis le lot apparaît dans la sortie.
 
-The server reserves ingredients before the prototype begins and validates every placement. Cancelling, closing the prototype screen or disconnecting before validation returns reserved materials to the input slots. Interrupted prototypes are also refunded after a world reload. Validated production continues after the screen closes and resumes when the workbench loads again. During a reserved batch its inventory is locked. Breaking the workbench drops stored items, finished output and the reserved ingredients of any unfinished batch. None of the four components has a vanilla crafting-table recipe.
+Le serveur réserve les ingrédients avant le prototype et vérifie chaque placement. Annuler, fermer l'écran du prototype ou se déconnecter avant validation restitue les matériaux. Les prototypes interrompus sont aussi remboursés au rechargement du monde. Une production validée continue après fermeture de l'écran et reprend au chargement de l'établi. L'inventaire est verrouillé pendant la réservation. Casser l'établi restitue les objets stockés, la sortie et les ingrédients réservés. Les quatre composants n'ont pas de recette à la table de craft vanilla.
 
-Other HomeLink mods can add recipes through the `homecore:electronics` recipe type in their own data resources; they do not need to depend on each other. Existing Device, Metric, Action, Event and HomeNetwork contracts remain unchanged.
+Les autres mods HomeLink peuvent ajouter des recettes `homecore:electronics` dans leurs propres ressources, sans dépendre les uns des autres. Les contrats Device, Metric, Action, Event et HomeNetwork restent inchangés.
 
-See [Electronics recipe format](docs/ELECTRONICS.md) for the extensible JSON schema.
+Le [format des recettes électroniques](docs/ELECTRONICS.md) décrit le schéma JSON extensible.
 
 ## Contrats et cycle de vie
 
@@ -225,7 +231,7 @@ actif jusqu'à 128 appareils, snapshots initiaux répartis sur plusieurs ticks p
 deltas uniquement. `NetworkWatchResponse.truncated()` signale explicitement les
 réseaux dépassant cette limite. Les changements de liste et de permissions sont
 transmis sans recharger les appareils conservés ; les événements couvrent tout le
-réseau autorisé. HomeCore 1.7.0 utilise le protocole réseau 2, requis sur les deux
+réseau autorisé. HomeCore 1.10.0 utilise le protocole réseau 2, requis sur les deux
 côtés. L'ancienne API paginée reste disponible.
 
 Depuis du code client uniquement, `HomeCoreClient.requestDevices(Optional.empty(), 0)` demande les réseaux visibles. Passer ensuite `Optional.of(networkId)` pour recevoir appareils, snapshots et changements. Une page contient au maximum 16 identifiants ; utiliser `nextOffset` pour continuer. Une seule page d'appareils est active par joueur.

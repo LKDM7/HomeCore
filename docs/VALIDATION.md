@@ -1,4 +1,96 @@
-# Delivery validation
+# Validation des livraisons
+
+## HomeCore 1.10.0 — validation locale du 29 septembre 2026
+
+Java 21.0.11, Minecraft 1.21.1, NeoForge 21.1.250 pour HomeCore et 21.1.251 pour
+les tests intermods. Le wrapper Gradle 8.8 a utilisé une copie du cache dans
+`build/local-gradle`, le cache utilisateur étant alors en lecture seule.
+Les sources des consommateurs ont été lues sans écrire dans leurs dépôts pendant
+cette phase de validation. Ces restrictions d'écriture ont ensuite été levées ;
+les résultats ci-dessous conservent les conditions des exécutions effectuées.
+
+| Vérification exécutée | Résultat |
+| --- | --- |
+| `build test verifyReleaseJar` | Succès ; **122 tests JUnit**, aucun échec, erreur ou test ignoré |
+| Javadoc avec avertissements bloquants | Succès après correction de la documentation des ports |
+| `verifyDocumentation` | Versions du mod, de l'API, JAR et exemples Maven cohérentes dans les README FR/EN |
+| `runPersistence -PpersistencePass=write` | **16 GameTests réussis** |
+| `runPersistence -PpersistencePass=read` dans un second processus | **16 GameTests réussis**, mêmes identités persistantes |
+| `publishMavenJavaPublicationToStagingRepository` | Publication locale réussie |
+| `-p gradle/publication-smoke verifyPublishedArtifacts` | Résolution indépendante du JAR, sources, Javadoc, POM et métadonnées Gradle réussie |
+| `-p integration-tests runGameTestServer` | **5 GameTests intermods réussis**, dernière exécution à 18:17:35, heure de Paris |
+
+Le build et le staging ont aussi réussi avec le cache de configuration activé,
+comme dans la CI. Le contrôle Maven utilise uniquement le dépôt de staging,
+sans Maven Local ni substitution composite. Les archives résolues correspondent
+aux fichiers produits dans `build/libs`.
+
+Les deux nouveaux GameTests du connecteur vérifient la sélection des réseaux
+administrables, la conservation des autres données de l'objet, la liaison via
+provider, le propriétaire, la révocation des permissions source/destination et
+la suppression d'un réseau.
+
+Le serveur d'intégration charge les sources de production locales de HomeCore
+1.10.0, Energy 0.2.2, Farm 1.2.0, Storage 1.1.0 et Quarry 1.2.0, depuis les
+copies corrigées sous `build/release-validation`, avec leurs adaptations
+ItemPort/NetworkMember. Les cinq scénarios vérifient :
+
+- la production d'un vrai panneau solaire vers une station Farm, sans injection
+  d'énergie, avec conservation des HE ;
+- le transfert FarmBot Station vers un vrai Deposit et les restrictions INPUT/OUTPUT ;
+- le transfert Quarry vers un vrai Deposit presque plein, sans perte ni duplication ;
+- le refus d'une face fermée du Deposit puis la reprise après rotation ;
+- les permissions source/destination, les propriétaires, le changement de réseau,
+  le détachement et la sauvegarde/rechargement du Storage Controller.
+
+Le premier essai solaire a échoué parce que le plafond du terrain GameTest
+bloquait le ciel. La fixture dégage maintenant les quatre colonnes de l'emprise ;
+les règles d'exposition et de production d'Energy n'ont pas été modifiées.
+
+Les rapports JUnit sont dans `build/test-results/test`, le journal de persistance
+dans `build/validation/persistence/logs` et le journal intermods dans
+`integration-tests/build/server/logs`. Les métadonnées du harnais exigent
+HomeCore 1.10.0 : elles ne remplacent pas la mise à jour des dépendances ni les
+builds de livraison des consommateurs. Les validations natives ci-dessous sont
+distinctes du harnais. Les clients graphiques et une session à plusieurs joueurs
+n'ont pas été exécutés pendant cette migration.
+
+Les copies de validation lisent les fichiers de travail des dépôts voisins puis
+appliquent les correctifs préparés, sans modifier ces dépôts. Farm passe ses
+40 tests JUnit, son contrôle JAR et 89 GameTests ; Quarry passe son build, son contrôle JAR et
+47 GameTests ; Storage passe son build, son contrôle JAR et 10 GameTests dans
+chacun des deux processus `write` puis `read`. Quarry et Storage n'ont pas de
+sources JUnit : la tâche `test NO-SOURCE` ne compte pas comme des tests exécutés.
+
+Energy passe ses 54 tests JUnit, son contrôle JAR et ses 61 GameTests après le
+correctif de liaison. Sa publication de staging contient le binaire, les sources,
+le POM et les métadonnées Gradle. Un projet consommateur indépendant a résolu ces
+artefacts et la dépendance transitive exacte HomeCore 1.10.0 depuis les seuls
+dépôts de staging. Il vérifie aussi que les archives résolues sont identiques aux
+archives construites. Aucun Maven Local ni build composite dans ce contrôle.
+
+Les correctifs CI des quatre consommateurs et la publication Energy sont prêts
+dans `build/homelink-migration-patches`. Ils passent `git apply --check` contre
+les dépôts voisins. La vérification JAR manquante de Farm y est ajoutée et a été
+exécutée avec succès dans sa copie de validation. Les workflows distants restent
+à exécuter après application et publication des dépendances.
+
+Les GameTests natifs ont révélé un refus de liaison avant le premier tick dans
+les wrappers consommateurs. La découverte du provider sert désormais de repli
+si l'appareil n'est pas encore enregistré ; `DashboardAPI.bindDevice` conserve
+tous les contrôles de permissions. HomeCore corrige aussi le cas d'un réseau
+supprimé encore enregistré sur l'appareil : `UNKNOWN_NETWORK` remplace
+`UNCHANGED`, avec un test vérifiant l'absence de mutation et le refus d'accès.
+
+Au terme de cette validation locale, les workflows GitHub Actions sont préparés
+mais non exécutés à distance. Aucun paquet Maven distant, commit ou push de cette
+migration n'a encore été effectué. Les restrictions d'écriture Git et des dépôts
+voisins sont levées : les correctifs validés peuvent maintenant être appliqués,
+relus puis publiés. L'application des patches de versions, de dépendances et de
+documentation, la migration des branches vers `main` et les publications distantes
+restent des étapes distinctes des validations locales rapportées ici.
+
+Les résultats ci-dessous sont ceux des livraisons antérieures.
 
 Each phase is built and tested before the next phase starts. Gradle uses JDK 21,
 Minecraft 1.21.1 and NeoForge 21.1.250. Compilation fails on deprecated, removal

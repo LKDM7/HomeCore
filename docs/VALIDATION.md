@@ -370,3 +370,16 @@ lots de 64 (circuit, microprocesseur, module de communication, module de
 contrôle) par glisser-déposer et clic-clic. Les modèles 3D des quatre composants
 passent le chargement réel de Minecraft. Les captures des deux nouveaux plans
 d'assemblage ont été examinées.
+
+## Version 1.12.0 — affichage dans JEI et REI
+
+Les recettes `homecore:electronics` disposent d'une catégorie dédiée dans JEI
+(API 19.57.0.449) et REI (API 16.0.799). Les deux intégrations sont optionnelles,
+côté client, compilées contre l'API seule et absentes des dépendances requises.
+
+Le 29 septembre 2026, `build` réussit : 126 tests unitaires passent et le contrôle
+du JAR exige les deux plugins. `runWorkbenchSmoke` réussit sans visualiseur de
+recettes, avec `-PwithJei` puis avec `-PwithRei`. Avec JEI, les quatre recettes
+de l'établi sont enregistrées dans la catégorie. Avec REI, le plugin est chargé
+et les quatre recettes produisent chacune un affichage. Aucune erreur n'apparaît
+dans les journaux client. Le rendu de la catégorie n'a pas été examiné par capture.

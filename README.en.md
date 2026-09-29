@@ -1,10 +1,10 @@
-# HomeCore 1.10.0
+# HomeCore 1.11.0
 
 French version: [README.md](README.md).
 
 HomeCore is a shared API for devices and networks in a Minecraft base. It does not depend on consumer mods: Home Dashboard, Farm Monitor and a holographic map can use its contracts without HomeCore knowing about their implementations.
 
-Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API: `DashboardAPI.API_VERSION = "1.6.0"`.
+Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API: `DashboardAPI.API_VERSION = "1.7.0"`.
 
 ## Build and install
 
@@ -15,13 +15,13 @@ Set `JAVA_HOME` to a JDK 21 installation, then use the Gradle wrapper:
 ./gradlew.bat runClient
 ```
 
-On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.10.0.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
+On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.11.0.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
 
 To develop a consumer mod, use an explicit published version. See [DEPENDENCIES.md](docs/DEPENDENCIES.md) for Maven configuration and local composite builds. Add this to the ModDevGradle project:
 
 ```groovy
 // Configure the Maven repository as described in docs/DEPENDENCIES.md.
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.10.0' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.11.0' }
 ```
 
 Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
@@ -30,7 +30,7 @@ Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.10.0,2.0.0)"
+versionRange="[1.11.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -281,3 +281,9 @@ The development smoke test also checks the command, `set_progress` action and ev
 A `DashboardDevice` whose block records its network can implement `NetworkMember`: recorded network, owner, machine-specific right (`canConfigure`) and the `homeNetworkChanged` notification. A dashboard can then list a machine's binding and move it without desynchronizing its block.
 
 For a player request, call `DashboardAPI.bindDevice(player, device, Optional.of(networkId))`, or `Optional.empty()` to detach. HomeCore requires `canConfigure` and MANAGE_NETWORK on the destination and on the previous network. The device joins the destination before leaving the old network; nothing changes when a check fails. A device without `NetworkMember` returns `NOT_SUPPORTED`. API 1.5.0.
+
+## Power and renaming
+
+A `DashboardDevice` can implement `Switchable` (`powered`, `setPowered`) and `Renamable` (`rename`). HomeCore then appends the standard actions `homecore:power` (TOGGLE, CONTROL permission) and `homecore:rename` (TEXT, at most 50 characters, CONFIGURE permission) to its schema, after the device's own actions; an action the device declares with the same identifier takes precedence. The name arrives trimmed, without control or formatting characters; an empty name restores the default name.
+
+Both actions remain available while the device is not `OFFLINE`, so a switched-off machine can be switched on again and a machine in a warning state can still be renamed. Device snapshots carry the `powered` state, and a rename or power change resends the device description to open dashboards. API 1.7.0.

@@ -3,6 +3,7 @@ package fr.lkdm.homecore.api.security;
 import fr.lkdm.homecore.api.action.ActionContext;
 import fr.lkdm.homecore.api.action.ActionResult;
 import fr.lkdm.homecore.api.action.DeviceAction;
+import fr.lkdm.homecore.api.action.StandardActions;
 import fr.lkdm.homecore.api.device.DeviceSchema;
 import fr.lkdm.homecore.api.device.DeviceStatus;
 import fr.lkdm.homecore.api.network.HomeNetworkManager;
@@ -79,8 +80,11 @@ public final class ActionExecutor {
             if (command == null) return result(ActionResult.Code.INVALID_PARAMETER);
             Permission required = Permission.fromId(command.requiredPermission()).orElse(null);
             if (!permissions.hasPermission(home, player, required)) return result(ActionResult.Code.DENIED);
-            if (!networks.isReachable(network, target) || target.status().state() != DeviceStatus.State.ONLINE)
-                return result(ActionResult.Code.DEVICE_OFFLINE);
+            // Switching on and renaming must stay possible while a machine is off or reporting a problem.
+            DeviceStatus.State state = target.status().state();
+            boolean available = StandardActions.isStandard(command.id()) ? state != DeviceStatus.State.OFFLINE
+                    : state == DeviceStatus.State.ONLINE;
+            if (!networks.isReachable(network, target) || !available) return result(ActionResult.Code.DEVICE_OFFLINE);
             Object parameter;
             try {
                 parameter = resolver.apply(command);

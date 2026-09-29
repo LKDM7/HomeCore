@@ -67,5 +67,9 @@
   "assembly.homecore.comparator_logic": "Comparator logic",
   "assembly.homecore.redstone_control_lines": "Redstone control lines",
   "assembly.homecore.copper_outputs": "Copper outputs",
-  "assembly.homecore.machine_output": "Machine output"
+  "assembly.homecore.machine_output": "Machine output",
+  "action.homecore.power": "Power",
+  "action.homecore.power.description": "Switch the machine on or off.",
+  "action.homecore.rename": "Rename",
+  "action.homecore.rename.description": "New name for the machine; leave empty to restore its default name."
 }

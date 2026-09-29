@@ -1,7 +1,9 @@
 package fr.lkdm.homecore.api.device;
 
 import fr.lkdm.homecore.api.action.DeviceAction;
+import fr.lkdm.homecore.api.action.StandardActions;
 import fr.lkdm.homecore.api.metric.DeviceMetric;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -29,13 +31,23 @@ public record DeviceSchema(List<DeviceMetric<?>> metrics, List<DeviceAction<?>> 
         requireUnique(actions, DeviceAction::id);
     }
 
-    /** Generates and validates the schema exposed by a device.
+    /** Generates and validates the schema exposed by a device, followed by the
+     * {@link StandardActions standard actions} of its optional contracts that it does not declare itself.
      * @param device source device with stable definitions
      * @return validated schema snapshot
      */
     public static DeviceSchema from(DashboardDevice device) {
         Objects.requireNonNull(device);
-        return new DeviceSchema(device.metrics(), device.actions(), device.eventTypes());
+        List<DeviceAction<?>> actions = device.actions();
+        List<DeviceAction<?>> standard = StandardActions.of(device);
+        if (!standard.isEmpty()) {
+            Set<ResourceLocation> declared = new HashSet<>();
+            for (DeviceAction<?> action : actions) declared.add(action.id());
+            List<DeviceAction<?>> merged = new ArrayList<>(actions);
+            for (DeviceAction<?> action : standard) if (!declared.contains(action.id())) merged.add(action);
+            actions = merged;
+        }
+        return new DeviceSchema(device.metrics(), actions, device.eventTypes());
     }
 
     private static <T> void requireUnique(List<T> values, Function<T, ResourceLocation> identity) {

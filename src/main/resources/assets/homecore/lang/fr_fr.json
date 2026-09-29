@@ -67,5 +67,9 @@
   "assembly.homecore.comparator_logic": "Logique du comparateur",
   "assembly.homecore.redstone_control_lines": "Lignes de contrôle Redstone",
   "assembly.homecore.copper_outputs": "Sorties en cuivre",
-  "assembly.homecore.machine_output": "Sortie machine"
+  "assembly.homecore.machine_output": "Sortie machine",
+  "action.homecore.power": "Alimentation",
+  "action.homecore.power.description": "Allume ou éteint la machine.",
+  "action.homecore.rename": "Renommer",
+  "action.homecore.rename.description": "Nouveau nom de la machine ; laisser vide pour rétablir le nom par défaut."
 }

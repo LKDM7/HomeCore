@@ -74,9 +74,12 @@ retain Minecraft Components. Device snapshot compounds contain:
 | `id`, `type`, `name` | Device UUID, namespaced kind, display name |
 | `status`, optional `message` | Availability and explanation |
 | optional `x`, `y`, `z`, `dimension` | Location when the device has one |
+| optional `powered` | On/off state of a `Switchable` device (HomeCore 1.11.0) |
 | `metrics` | Compounds containing `id`, `name`, `type`, `unit`, `unitSymbol`, `policy`, optional `range`, `value`, `revision` |
 | `actions` | Compounds containing `id`, `name`, `description`, `type`, `permission`, optional `min`/`max`/`step`, `maxLength`, `options` |
 | `events`, `capabilities` | Lists of namespaced identifiers |
+
+A device implementing `Switchable` or `Renamable` also lists the standard actions `homecore:power` and `homecore:rename`. A change of `name` or `powered` resends the whole device snapshot, like a status change.
 
 Metric ranges encode exact decimal `min`, `max`, `step` as strings. Each value
 compound uses the documented `WireValue.Kind` discriminant `kind`; use

@@ -2,6 +2,7 @@ package fr.lkdm.homecore.network;
 
 import fr.lkdm.homecore.api.device.DashboardDevice;
 import fr.lkdm.homecore.api.device.DeviceSchema;
+import fr.lkdm.homecore.api.device.Switchable;
 import fr.lkdm.homecore.api.network.HomeNetwork;
 import fr.lkdm.homecore.api.transport.WireValue;
 import java.io.ByteArrayInputStream;
@@ -36,6 +37,7 @@ public final class SnapshotEncoder {
             result.putInt("x", position.getX()); result.putInt("y", position.getY()); result.putInt("z", position.getZ());
         });
         device.dimension().ifPresent(dimension -> put(result, "dimension", dimension.location().toString(), 256));
+        if (device instanceof Switchable switchable) result.putBoolean("powered", switchable.powered());
         ListTag metrics = new ListTag();
         result.put("metrics", metrics);
         for (var metric : schema.metrics()) {

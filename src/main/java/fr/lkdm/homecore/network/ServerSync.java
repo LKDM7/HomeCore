@@ -5,6 +5,7 @@ import static fr.lkdm.homecore.api.transport.HomeCorePayloads.WATCH_SIZE;
 import fr.lkdm.homecore.api.action.ActionResult;
 import fr.lkdm.homecore.api.device.DashboardDevice;
 import fr.lkdm.homecore.api.device.DeviceStatus;
+import fr.lkdm.homecore.api.device.Switchable;
 import fr.lkdm.homecore.api.event.DeviceEvent;
 import fr.lkdm.homecore.api.event.DeviceEventBus;
 import fr.lkdm.homecore.api.metric.UpdatePolicy;
@@ -275,8 +276,7 @@ public final class ServerSync implements AutoCloseable {
                     DashboardDevice device = devices.get(id).orElse(null);
                     if (device == null || !networks.isReachable(watch.network, device)) { watch.nextRosterTick = tick; continue; }
                     Tracked tracked = watch.devices.get(id);
-                    if (tracked == null || watch.failedUntil.containsKey(id)
-                            || tracked.device != device || !tracked.status.equals(device.status())) {
+                    if (tracked == null || watch.failedUntil.containsKey(id) || tracked.changed(device)) {
                         if (budget.snapshots > 0) watchSnapshot(player, watch, id, budget);
                         continue;
                     }
@@ -340,14 +340,14 @@ public final class ServerSync implements AutoCloseable {
         snapshot.putString("type", "homecore:unavailable");
         snapshot.putString("status", "ERROR");
         snapshot.putString("message", "Device metadata is unavailable");
-        watch.devices.put(id, new Tracked(null, DeviceStatus.ERROR, new HashMap<>()));
+        watch.devices.put(id, new Tracked(null, DeviceStatus.ERROR, "", null, new HashMap<>()));
         budget.snapshots--;
         send(player, new DeviceSnapshot(watch.network, id, snapshot));
     }
 
     private void update(UUID player, Page page, UUID id, DashboardDevice device) {
         Tracked tracked = page.devices.get(id);
-        if (tracked.device != device || !tracked.status.equals(device.status())) {
+        if (tracked.changed(device)) {
             CompoundTag snapshot = SnapshotEncoder.device(device);
             page.devices.put(id, tracked(device, snapshot));
             send(player, new DeviceSnapshot(page.network, id, snapshot));
@@ -447,7 +447,7 @@ public final class ServerSync implements AutoCloseable {
             CompoundTag metric = (CompoundTag) tag;
             revisions.put(ResourceLocation.parse(metric.getString("id")), metric.getLong("revision"));
         }
-        return new Tracked(device, device.status(), revisions);
+        return new Tracked(device, device.status(), device.displayName().getString(), powered(device), revisions);
     }
     private static int interval(UpdatePolicy policy) {
         return switch (policy) { case REALTIME, ON_CHANGE -> 1; case FAST -> 5; case NORMAL -> 20; case SLOW -> 100; case STATIC -> 0; };
@@ -460,7 +460,17 @@ public final class ServerSync implements AutoCloseable {
         int eventsThisTick;
         Page(UUID network, UUID request, List<UUID> ids) { this.network = network; this.request = request; this.ids = ids; }
     }
-    private record Tracked(DashboardDevice device, DeviceStatus status, Map<ResourceLocation, Long> revisions) { }
+    private static Boolean powered(DashboardDevice device) {
+        return device instanceof Switchable switchable ? switchable.powered() : null;
+    }
+    /** Besides the device instance and status, a rename or a power switch resends the device description. */
+    private record Tracked(DashboardDevice device, DeviceStatus status, String name, Boolean powered,
+                           Map<ResourceLocation, Long> revisions) {
+        boolean changed(DashboardDevice current) {
+            return device != current || !status.equals(current.status()) || !Objects.equals(powered, ServerSync.powered(current))
+                    || !name.equals(current.displayName().getString());
+        }
+    }
     private static final class WatchBudget {
         int snapshots = 16;
         int deltas = 256;

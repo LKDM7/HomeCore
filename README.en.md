@@ -1,4 +1,4 @@
-# HomeCore 1.12.0
+# HomeCore 1.11.1
 
 French version: [README.md](README.md).
 
@@ -15,13 +15,13 @@ Set `JAVA_HOME` to a JDK 21 installation, then use the Gradle wrapper:
 ./gradlew.bat runClient
 ```
 
-On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.12.0.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
+On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.11.1.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
 
 To develop a consumer mod, use an explicit published version. See [DEPENDENCIES.md](docs/DEPENDENCIES.md) for Maven configuration and local composite builds. Add this to the ModDevGradle project:
 
 ```groovy
 // Configure the Maven repository as described in docs/DEPENDENCIES.md.
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.12.0' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.11.1' }
 ```
 
 Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
@@ -30,7 +30,7 @@ Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.12.0,2.0.0)"
+versionRange="[1.11.1,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```

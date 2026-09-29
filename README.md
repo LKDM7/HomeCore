@@ -1,4 +1,4 @@
-# HomeCore 1.12.0
+# HomeCore 1.11.1
 
 Version anglaise : [README.en.md](README.en.md).
 
@@ -19,13 +19,13 @@ Configurer `JAVA_HOME` vers un JDK 21 puis utiliser le wrapper :
 ./gradlew.bat runClient
 ```
 
-Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.12.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
+Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.11.1.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
 
 Pour développer un mod consommateur, utiliser une version publiée explicite. Le dépôt Maven et le mode composite local sont décrits dans [DEPENDENCIES.md](docs/DEPENDENCIES.md). Dans son projet ModDevGradle :
 
 ```groovy
 // Configurer le dépôt Maven selon docs/DEPENDENCIES.md.
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.12.0' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.11.1' }
 ```
 
 Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identifiant :
@@ -34,7 +34,7 @@ Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identif
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.12.0,2.0.0)"
+versionRange="[1.11.1,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```

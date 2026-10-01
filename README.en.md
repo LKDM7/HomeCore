@@ -1,4 +1,4 @@
-# HomeCore 1.12.0
+# HomeCore 1.13.0
 
 French version: [README.md](README.md).
 
@@ -15,13 +15,13 @@ Set `JAVA_HOME` to a JDK 21 installation, then use the Gradle wrapper:
 ./gradlew.bat runClient
 ```
 
-On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.12.0.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
+On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.13.0.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
 
 To develop a consumer mod, use an explicit published version. See [DEPENDENCIES.md](docs/DEPENDENCIES.md) for Maven configuration and local composite builds. Add this to the ModDevGradle project:
 
 ```groovy
 // Configure the Maven repository as described in docs/DEPENDENCIES.md.
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.12.0' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.13.0' }
 ```
 
 Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
@@ -30,7 +30,7 @@ Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.12.0,2.0.0)"
+versionRange="[1.13.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -116,7 +116,7 @@ Other HomeLink mods can add recipes through the `homecore:electronics` recipe ty
 
 See [Electronics recipe format](docs/ELECTRONICS.md) for the extensible JSON schema.
 
-With JEI (19.0 or later) or REI (16.0 or later) installed, every `homecore:electronics` recipe, including those added by other mods, appears in an Electronics Workbench category showing the quantities needed per assembly. The workbench is listed as the crafting station. Both viewers are optional client-side mods; HomeCore runs without them. In development, `-PwithJei` or `-PwithRei` loads one of them in client runs.
+With JEI (19.0 or later) or REI (16.0 or later) installed, every `homecore:electronics` recipe, including those added by other mods, appears in an Electronics Workbench category showing the quantities needed per assembly. The workbench is listed as the crafting station. Both viewers are optional client-side mods; HomeCore runs without them. In development, `-PwithJei` or `-PwithRei` loads one of them in client runs. Every HomeCore item also has an information page there (JEI "i" tab, REI "Information") explaining what it does, in English and French.
 
 For a ready-to-paste CurseForge project description, see [CURSEFORGE_DESCRIPTION.md](CURSEFORGE_DESCRIPTION.md).
 

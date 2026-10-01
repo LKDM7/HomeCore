@@ -71,5 +71,11 @@
   "action.homecore.power": "Alimentation",
   "action.homecore.power.description": "Allume ou éteint la machine.",
   "action.homecore.rename": "Renommer",
-  "action.homecore.rename.description": "Nouveau nom de la machine ; laisser vide pour rétablir le nom par défaut."
+  "action.homecore.rename.description": "Nouveau nom de la machine ; laisser vide pour rétablir le nom par défaut.",
+  "info.homecore.electronics_workbench": "Établi commun d'assemblage électronique HomeLink. Il occupe deux blocs côte à côte et ne consomme ni énergie ni combustible.\nDéposer les matériaux dans les neuf cases d'entrée, choisir l'onglet d'un composant et le nombre d'objets finis (jusqu'à 64), puis assembler un prototype : les pièces correctes s'enclenchent, une erreur ne coûte rien.\nLe serveur réserve les ingrédients et les rend si l'on annule, ferme le prototype ou se déconnecte. Un lot validé continue écran fermé.",
+  "info.homecore.homelink_circuit_board": "Composant électronique de base de tous les appareils HomeLink.\nS'assemble uniquement à l'établi électronique avec du cuivre, de la redstone et du quartz. Chaque assemblage produit deux cartes.",
+  "info.homecore.homelink_microprocessor": "Composant de traitement des appareils HomeLink complexes.\nS'assemble uniquement à l'établi électronique avec une carte, des pépites d'or, du cuivre, de la redstone et du quartz.",
+  "info.homecore.homelink_communication_module": "Module de communication, de réseau et de détection des serveurs, liaisons et répéteurs HomeLink.\nS'assemble uniquement à l'établi électronique avec une carte, un microprocesseur, du cuivre, de la redstone, du quartz et un éclat d'améthyste.",
+  "info.homecore.homelink_control_module": "Module de commande des moteurs, mécanismes et machines automatisées.\nS'assemble uniquement à l'établi électronique avec une carte, un microprocesseur, un comparateur, du cuivre, de la redstone et du fer.",
+  "info.homecore.homelink_connector": "Outil qui rattache une machine compatible à l'un de vos HomeNetworks.\nL'utiliser dans le vide pour parcourir les réseaux que vous pouvez gérer, puis cliquer sur une machine pour la rattacher. Accroupi, cliquer sur une machine reliée sélectionne son réseau ; accroupi dans le vide, la sélection s'efface.\nIl faut pouvoir configurer la machine et gérer l'ancien comme le nouveau réseau."
 }

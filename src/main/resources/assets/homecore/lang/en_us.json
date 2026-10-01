@@ -71,5 +71,11 @@
   "action.homecore.power": "Power",
   "action.homecore.power.description": "Switch the machine on or off.",
   "action.homecore.rename": "Rename",
-  "action.homecore.rename.description": "New name for the machine; leave empty to restore its default name."
+  "action.homecore.rename.description": "New name for the machine; leave empty to restore its default name.",
+  "info.homecore.electronics_workbench": "Shared assembly bench for HomeLink electronics. It takes two blocks side by side and needs neither energy nor fuel.\nPut materials in the nine input slots, pick a component tab and the number of finished items (up to 64), then assemble one prototype: correct pieces snap into place, a mistake costs nothing.\nIngredients are reserved by the server and refunded if you cancel, close the prototype or disconnect. A validated batch keeps running when the screen is closed.",
+  "info.homecore.homelink_circuit_board": "Basic electronic component of every HomeLink device.\nAssembled only at the Electronics Workbench from copper, redstone and quartz. Each assembly makes two boards.",
+  "info.homecore.homelink_microprocessor": "Processing component for complex HomeLink devices.\nAssembled only at the Electronics Workbench from a circuit board, gold nuggets, copper, redstone and quartz.",
+  "info.homecore.homelink_communication_module": "Communication, networking and sensing module used by HomeLink servers, links and repeaters.\nAssembled only at the Electronics Workbench from a circuit board, a microprocessor, copper, redstone, quartz and an amethyst shard.",
+  "info.homecore.homelink_control_module": "Control module for motors, mechanisms and automated machines.\nAssembled only at the Electronics Workbench from a circuit board, a microprocessor, a comparator, copper, redstone and iron.",
+  "info.homecore.homelink_connector": "Tool that attaches a compatible machine to one of your HomeNetworks.\nUse it in the air to cycle through the networks you can manage, then click a machine to attach it. Sneak-click a linked machine to select its network; sneak-use in the air to clear the selection.\nYou need to be allowed to configure the machine and to manage both the old and the new network."
 }

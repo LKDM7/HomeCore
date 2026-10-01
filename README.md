@@ -1,4 +1,4 @@
-# HomeCore 1.12.0
+# HomeCore 1.13.0
 
 Version anglaise : [README.en.md](README.en.md).
 
@@ -19,13 +19,13 @@ Configurer `JAVA_HOME` vers un JDK 21 puis utiliser le wrapper :
 ./gradlew.bat runClient
 ```
 
-Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.12.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
+Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.13.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
 
 Pour développer un mod consommateur, utiliser une version publiée explicite. Le dépôt Maven et le mode composite local sont décrits dans [DEPENDENCIES.md](docs/DEPENDENCIES.md). Dans son projet ModDevGradle :
 
 ```groovy
 // Configurer le dépôt Maven selon docs/DEPENDENCIES.md.
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.12.0' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.13.0' }
 ```
 
 Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identifiant :
@@ -34,7 +34,7 @@ Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identif
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.12.0,2.0.0)"
+versionRange="[1.13.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -100,7 +100,7 @@ Les autres mods HomeLink peuvent ajouter des recettes `homecore:electronics` dan
 
 Le [format des recettes électroniques](docs/ELECTRONICS.md) décrit le schéma JSON extensible.
 
-Avec JEI (19.0 ou plus récent) ou REI (16.0 ou plus récent), les recettes `homecore:electronics`, y compris celles des autres mods, s'affichent dans une catégorie « établi électronique » avec les quantités requises par assemblage. L'établi y apparaît comme poste de fabrication. Ces deux mods sont optionnels et côté client : HomeCore fonctionne sans eux. En développement, `-PwithJei` ou `-PwithRei` les charge dans les lancements du client.
+Avec JEI (19.0 ou plus récent) ou REI (16.0 ou plus récent), les recettes `homecore:electronics`, y compris celles des autres mods, s'affichent dans une catégorie « établi électronique » avec les quantités requises par assemblage. L'établi y apparaît comme poste de fabrication. Ces deux mods sont optionnels et côté client : HomeCore fonctionne sans eux. En développement, `-PwithJei` ou `-PwithRei` les charge dans les lancements du client. Chaque objet de HomeCore y a aussi une page d'information (onglet « i » de JEI, « Information » de REI) qui explique son rôle, en français et en anglais.
 
 ## Contrats et cycle de vie
 

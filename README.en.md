@@ -304,6 +304,15 @@ A cancelled or refunded batch emits no receipt, and taking the finished item out
 output slot emits none either. The channel keeps no history: a consumer must credit each
 `transactionId()` at most once, because a receipt may be delivered again.
 
+```java
+// Subscribe once per server start; close the subscription when the server stops.
+var subscription = DashboardAPI.production(server).subscribe(receipt -> {
+    // credited is persisted by the consumer (for example in its SavedData), so a replay
+    // after a reload or a duplicate delivery never counts the batch twice.
+    if (credited.add(receipt.transactionId())) progress.add(receipt.result().getItem(), receipt.quantity());
+});
+```
+
 ## Dashboard client
 
 For a dashboard, use `HomeCoreClient.subscribeNetwork(networkId)`: an active subscription for up to 128 devices, with initial snapshots spread across multiple ticks followed by deltas only. `NetworkWatchResponse.truncated()` explicitly reports networks larger than this limit. Membership and permission changes are sent without reloading devices that remain; events cover the entire network the player is authorized to see. HomeCore 1.10.0 uses network protocol 2, which must match on both sides. The older paginated API remains available.

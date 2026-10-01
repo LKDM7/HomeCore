@@ -288,6 +288,15 @@ sortie n'en émet pas davantage. Le canal ne conserve pas d'historique : un cons
 doit créditer chaque `transactionId()` au plus une fois, car un reçu peut être délivré
 de nouveau.
 
+```java
+// S'abonner une fois par démarrage du serveur ; fermer l'abonnement à son arrêt.
+var subscription = DashboardAPI.production(server).subscribe(receipt -> {
+    // credited est persisté par le consommateur (par exemple dans son SavedData) : un reçu
+    // rejoué après un rechargement ou livré deux fois n'est jamais compté deux fois.
+    if (credited.add(receipt.transactionId())) progress.add(receipt.result().getItem(), receipt.quantity());
+});
+```
+
 ## Client Dashboard
 
 Pour un Dashboard, utiliser `HomeCoreClient.subscribeNetwork(networkId)` : abonnement

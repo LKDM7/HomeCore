@@ -21,10 +21,21 @@ public final class HomeCore {
         HomeCoreCreativeTabs.TABS.register(modBus);
         modBus.addListener(fr.lkdm.homecore.network.PayloadRegistration::register);
         modBus.addListener(fr.lkdm.homecore.workbench.WorkbenchNetworking::register);
+        modBus.addListener(HomeCore::setupContracts);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(this::serverStopped);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(this::serverTick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(this::playerLeft);
         LOGGER.info("HomeCore initialized (API {})", DashboardAPI.API_VERSION);
+    }
+
+    /** Publishes the neutral contracts consumer mods read, once registries are frozen. */
+    private static void setupContracts(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
+        event.enqueueWork(() -> {
+            DashboardAPI.capabilities().register(fr.lkdm.homecore.api.stock.StockProvider.CAPABILITY);
+            fr.lkdm.homecore.api.recipe.RecipeDescriptors.register(
+                    fr.lkdm.homecore.registry.HomeCoreRecipes.TYPE.get(),
+                    fr.lkdm.homecore.workbench.recipe.ElectronicsDescriptors::describe);
+        });
     }
 
     private void serverStopped(net.neoforged.neoforge.event.server.ServerStoppedEvent event) {

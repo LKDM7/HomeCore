@@ -12,17 +12,21 @@ public final class AssemblySession {
     final ItemStack result;
     final int steps;
     final int duration;
+    /** Server game tick the batch was started at; a consumer uses it to reject retroactive credit. */
+    long startedTick;
+    fr.lkdm.homecore.api.production.ProductionStart start;
     int placedMask;
     int progress;
     int phase;
 
-    AssemblySession(UUID id, UUID player, ResourceLocation recipe, ItemStack result, int steps, int duration) {
+    AssemblySession(UUID id, UUID player, ResourceLocation recipe, ItemStack result, int steps, int duration, long startedTick) {
         this.id = id;
         this.player = player;
         this.recipe = recipe;
         this.result = result.copy();
         this.steps = steps;
         this.duration = duration;
+        this.startedTick = startedTick;
         this.phase = 1;
     }
 

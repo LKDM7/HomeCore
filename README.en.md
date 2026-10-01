@@ -1,10 +1,10 @@
-# HomeCore 1.11.1
+# HomeCore 1.12.0
 
 French version: [README.md](README.md).
 
 HomeCore is a shared API for devices and networks in a Minecraft base. It does not depend on consumer mods: Home Dashboard, Farm Monitor and a holographic map can use its contracts without HomeCore knowing about their implementations.
 
-Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API: `DashboardAPI.API_VERSION = "1.7.0"`.
+Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API: `DashboardAPI.API_VERSION = "1.8.0"`.
 
 ## Build and install
 
@@ -15,13 +15,13 @@ Set `JAVA_HOME` to a JDK 21 installation, then use the Gradle wrapper:
 ./gradlew.bat runClient
 ```
 
-On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.11.1.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
+On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.12.0.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
 
 To develop a consumer mod, use an explicit published version. See [DEPENDENCIES.md](docs/DEPENDENCIES.md) for Maven configuration and local composite builds. Add this to the ModDevGradle project:
 
 ```groovy
 // Configure the Maven repository as described in docs/DEPENDENCIES.md.
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.11.1' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.12.0' }
 ```
 
 Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
@@ -30,7 +30,7 @@ Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.11.1,2.0.0)"
+versionRange="[1.12.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -243,6 +243,66 @@ Avoid duplicate registrations and unregister the device when it unloads. A provi
 Define a Java contract and register it once with `DashboardAPI.capabilities().register(new DeviceCapability<>(id, MyCapability.class))`. Keep the returned `DeviceCapability<MyCapability>`. In the device, build `CapabilitySet.builder().add(descriptor, implementation).build()`, return its `ids()` from `capabilities()` and delegate `capability(descriptor)` to `query`.
 
 `device.capability(descriptor)` returns a typed `Optional`. The implementation stays local to the server; only IDs are sent over the network. HomeCore does not impose a complete energy or inventory system.
+
+## Authorised stock reading
+
+`fr.lkdm.homecore.api.stock` describes stock **read-only**. A storage mod publishes
+`StockProvider.CAPABILITY` on its device; a consumer reads that contract without ever
+importing the storage mod's internal classes.
+
+`StockProvider.observe(StockRequest)` receives a bounded question: one network, one
+authenticated player and at most `StockRequest.MAX_VARIANTS` variants. The
+implementation re-checks membership, the `VIEW` permission on that network, the
+device's binding and its own scope on every call. A failed check returns
+`StockSnapshot.unavailable`, never another network's data.
+
+The answer separates three facts that must never be confused:
+
+- `StockAvailability.COMPLETE`: the whole scope was observed, so a missing variant is
+  genuinely absent;
+- `StockAvailability.PARTIAL`: part of the scope could not be observed, so an absence
+  proves nothing;
+- `StockAvailability.UNAVAILABLE`: nothing was observed. **Unknown is not zero.**
+
+`StockAccess` separates reading from taking: `READ_ONLY` means the player sees the
+quantity without being allowed to withdraw it, and a consumer must display it that way.
+
+Each `StockEntry` attributes its quantities to canonical `StockSourceId` values
+(dimension plus the logical inventory position, for example the first half of a double
+chest). Two controllers covering the same chest report the same identity, so a consumer
+aggregating several providers counts it once instead of doubling the stock. Reading
+extracts nothing, moves nothing, reserves nothing and loads no chunk.
+
+## Public recipe description
+
+`fr.lkdm.homecore.api.recipe` provides a neutral description. The mod that owns a recipe
+type registers its adapter once with `RecipeDescriptors.register(type, provider)`;
+HomeCore does so for `homecore:electronics`. `RecipeDescriptors.describe(holder)` returns
+an empty `Optional<RecipeDescriptor>` for a type without an adapter: that case must be
+shown as "recipe not supported", never guessed.
+
+A `RecipeDescriptor`'s quantities describe **one operation**: `ingredients()` is consumed
+once and `result()` carries the yield. `operationsFor(remaining)` rounds up — ten
+remaining items with a yield of four need three operations, producing twelve items of
+which two are surplus. `maxBatchOutput()` stays the producer's own limit: a task's demand
+never widens it.
+
+## Production receipts
+
+`fr.lkdm.homecore.api.production` reports batches that were **really finished**.
+`DashboardAPI.production(server)` exposes the channel; the electronics workbench publishes
+at the exact moment the result appears in its output slot.
+
+A `ProductionReceipt` carries the batch's transaction identity, the player whose recorded
+authorship it was started under, the recipe, the real result and the server ticks of its
+start and completion. `result().getCount()` is the number of **finished items**: a batch
+of sixty-four components reports sixty-four, not one. Server ticks advance monotonically
+and are unaffected by `/time set`, which lets a consumer refuse to credit a batch started
+before its tracking was activated.
+
+A cancelled or refunded batch emits no receipt, and taking the finished item out of the
+output slot emits none either. The channel keeps no history: a consumer must credit each
+`transactionId()` at most once, because a receipt may be delivered again.
 
 ## Dashboard client
 

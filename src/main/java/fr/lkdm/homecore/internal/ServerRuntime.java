@@ -12,6 +12,7 @@ public final class ServerRuntime {
     private final fr.lkdm.homecore.api.event.DeviceEventBus events = new fr.lkdm.homecore.api.event.DeviceEventBus();
     private final fr.lkdm.homecore.api.security.RateLimiter actionLimiter = new fr.lkdm.homecore.api.security.RateLimiter();
     private final fr.lkdm.homecore.api.security.PermissionValidator permissions = new fr.lkdm.homecore.api.security.PermissionValidator();
+    private final fr.lkdm.homecore.api.production.ProductionLog production = new fr.lkdm.homecore.api.production.ProductionLog();
     private fr.lkdm.homecore.network.ServerSync sync;
 
     private ServerRuntime() { }
@@ -27,12 +28,14 @@ public final class ServerRuntime {
             if (runtime.sync != null) runtime.sync.close();
             runtime.devices.clear();
             runtime.events.close();
+            runtime.production.close();
             runtime.actionLimiter.clear();
         }
     }
 
     public DeviceRegistry devices() { return devices; }
     public fr.lkdm.homecore.api.event.DeviceEventBus events() { return events; }
+    public fr.lkdm.homecore.api.production.ProductionLog production() { return production; }
     public fr.lkdm.homecore.api.security.PermissionValidator permissions() { return permissions; }
     public fr.lkdm.homecore.api.security.ActionExecutor actions(MinecraftServer server) {
         return new fr.lkdm.homecore.api.security.ActionExecutor(devices,

@@ -30,6 +30,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /** Persistent inventory with exclusive, refundable reservations owned by the server. */
 public final class ElectronicsBlockEntity extends BlockEntity implements WorldlyContainer, MenuProvider {
+    /** Producer identity carried by every receipt this workbench issues. */
+    public static final ResourceLocation SOURCE = ResourceLocation.fromNamespaceAndPath("homecore", "electronics_workbench");
     private final NonNullList<ItemStack> items = NonNullList.withSize(10, ItemStack.EMPTY);
     private final NonNullList<ItemStack> reserved = NonNullList.withSize(9, ItemStack.EMPTY);
     private AssemblySession session;
@@ -60,7 +62,8 @@ public final class ElectronicsBlockEntity extends BlockEntity implements Worldly
         for (int slot = 0; slot < 9; slot++) reserved.set(slot, items.get(slot).split(consumed[slot]));
         int duration = Math.min(80, Math.max(20, recipe.processingTime() + (quantity - 1) * 60 / 63));
         session = new AssemblySession(UUID.randomUUID(), player.getUUID(), current.get().id(),
-                result.copyWithCount(quantity), recipe.assemblyLayout().size(), duration);
+                result.copyWithCount(quantity), recipe.assemblyLayout().size(), duration, level.getGameTime());
+        session.start = fr.lkdm.homecore.api.DashboardAPI.production(player.server).startStamp();
         changed();
         return true;
     }
@@ -98,6 +101,8 @@ public final class ElectronicsBlockEntity extends BlockEntity implements Worldly
                     return;
                 }
                 block.items.set(9, active.result.copyWithCount(output.getCount() + active.result.getCount()));
+                // The result exists now: this is the only moment a batch may be reported as produced.
+                publishReceipt(level, active);
                 // Compute per consumed unit, as vanilla crafting does (buckets, bottles, etc.).
                 List<ItemStack> remainders = new ArrayList<>();
                 for (ItemStack consumed : block.reserved) {
@@ -116,6 +121,22 @@ public final class ElectronicsBlockEntity extends BlockEntity implements Worldly
                 block.changed();
             } else block.setChanged();
         }
+    }
+
+    /**
+     * Reports a batch whose result has just appeared in the output slot.
+     *
+     * <p>Emitted exactly once per batch, after the items exist and before the session is
+     * released. A refunded or cancelled batch never reaches this point, and taking the
+     * finished output out again is not a production.</p>
+     */
+    private static void publishReceipt(Level level, AssemblySession finished) {
+        if (level.isClientSide || level.getServer() == null) return;
+        var log = fr.lkdm.homecore.api.DashboardAPI.production(level.getServer());
+        log.publish(new fr.lkdm.homecore.api.production.ProductionReceipt(
+                finished.id, finished.player, SOURCE, java.util.Optional.of(finished.recipe),
+                finished.result.copy(), Math.min(finished.startedTick, level.getGameTime()),
+                level.getGameTime(), log.nextSequence(), java.util.Optional.empty(), java.util.Optional.ofNullable(finished.start)));
     }
 
     private void refund() {
@@ -196,6 +217,10 @@ public final class ElectronicsBlockEntity extends BlockEntity implements Worldly
             active.putInt("Steps", session.steps); active.putInt("Mask", session.placedMask);
             active.putInt("Duration", session.duration); active.putInt("Progress", session.progress);
             active.putInt("Phase", session.phase);
+            active.putLong("StartedTick", session.startedTick);
+            if (session.start != null) {
+                active.putUUID("StartedEpoch", session.start.epoch()); active.putLong("StartedOrder", session.start.ordinal());
+            }
             tag.put("Assembly", active);
         }
     }
@@ -214,8 +239,11 @@ public final class ElectronicsBlockEntity extends BlockEntity implements Worldly
             if (recipe != null && !result.isEmpty() && result.getCount() <= Math.min(64, result.getMaxStackSize())
                     && recoverReservation) {
                 session = new AssemblySession(active.getUUID("Id"), active.getUUID("Player"), recipe, result,
-                        Math.clamp(active.getInt("Steps"), 1, 8), Math.clamp(active.getInt("Duration"), 20, 80));
+                        Math.clamp(active.getInt("Steps"), 1, 8), Math.clamp(active.getInt("Duration"), 20, 80),
+                        Math.max(0L, active.getLong("StartedTick")));
                 session.phase = 2;
+                if (active.hasUUID("StartedEpoch") && active.getLong("StartedOrder") >= 0)
+                    session.start = new fr.lkdm.homecore.api.production.ProductionStart(active.getUUID("StartedEpoch"), active.getLong("StartedOrder"));
                 session.placedMask = (1 << session.steps) - 1;
                 session.progress = Math.clamp(active.getInt("Progress"), 0, session.duration);
                 recoverReservation = false;

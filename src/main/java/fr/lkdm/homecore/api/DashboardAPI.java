@@ -5,6 +5,7 @@ import fr.lkdm.homecore.api.capability.CapabilityRegistry;
 import fr.lkdm.homecore.api.event.DeviceEventBus;
 import fr.lkdm.homecore.api.device.DashboardDevice;
 import fr.lkdm.homecore.api.network.HomeNetworkManager;
+import fr.lkdm.homecore.api.production.ProductionLog;
 import fr.lkdm.homecore.api.network.NetworkMember;
 import fr.lkdm.homecore.api.registry.DeviceProvider;
 import fr.lkdm.homecore.api.registry.DeviceProviderRegistry;
@@ -30,7 +31,7 @@ public final class DashboardAPI {
     private static final DeviceProviderRegistry PROVIDERS = new DeviceProviderRegistry();
     private static final CapabilityRegistry CAPABILITIES = new CapabilityRegistry();
     /** Semantic version of the public API, independent of the mod artifact version. */
-    public static final String API_VERSION = "1.7.0";
+    public static final String API_VERSION = "1.8.0";
 
     private DashboardAPI() {
     }
@@ -51,6 +52,16 @@ public final class DashboardAPI {
      */
     public static DeviceEventBus events(MinecraftServer server) {
         return ServerRuntime.get(server).events();
+    }
+
+    /** Returns the finished-batch receipt channel for this server.
+     * Producers publish on the server thread when a result actually exists;
+     * consumers must credit each transaction identity at most once.
+     * @param server owning server
+     * @return production log, closed on server stop
+     */
+    public static ProductionLog production(MinecraftServer server) {
+        return ServerRuntime.get(server).production();
     }
 
     /** Returns persistent home networks, shared across dimensions.

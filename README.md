@@ -1,4 +1,4 @@
-# HomeCore 1.11.1
+# HomeCore 1.12.0
 
 Version anglaise : [README.en.md](README.en.md).
 
@@ -8,7 +8,7 @@ Configuration de publication CurseForge : [README anglais](README.en.md#publish-
 
 API commune pour les appareils et réseaux d'une base Minecraft. HomeCore ne dépend d'aucun mod consommateur : Home Dashboard, Farm Monitor et une carte holographique peuvent utiliser ses contrats sans que HomeCore connaisse leurs implémentations.
 
-Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API : `DashboardAPI.API_VERSION = "1.7.0"`.
+Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API : `DashboardAPI.API_VERSION = "1.8.0"`.
 
 ## Construire et installer
 
@@ -19,13 +19,13 @@ Configurer `JAVA_HOME` vers un JDK 21 puis utiliser le wrapper :
 ./gradlew.bat runClient
 ```
 
-Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.11.1.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
+Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.12.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
 
 Pour développer un mod consommateur, utiliser une version publiée explicite. Le dépôt Maven et le mode composite local sont décrits dans [DEPENDENCIES.md](docs/DEPENDENCIES.md). Dans son projet ModDevGradle :
 
 ```groovy
 // Configurer le dépôt Maven selon docs/DEPENDENCIES.md.
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.11.1' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.12.0' }
 ```
 
 Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identifiant :
@@ -34,7 +34,7 @@ Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identif
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.11.1,2.0.0)"
+versionRange="[1.12.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -225,6 +225,68 @@ DashboardAPI.providers().discover(blockEntity)
 Définir un contrat Java et l'inscrire une fois via `DashboardAPI.capabilities().register(new DeviceCapability<>(id, MyCapability.class))`. Conserver le `DeviceCapability<MyCapability>` retourné. Dans l'appareil, construire `CapabilitySet.builder().add(descriptor, implementation).build()`, retourner ses `ids()` dans `capabilities()` et déléguer `capability(descriptor)` à `query`.
 
 `device.capability(descriptor)` retourne un `Optional` typé. L'implémentation reste locale au serveur ; seuls les identifiants sont transportés. HomeCore n'impose aucun système énergie/inventaire complet.
+
+## Lecture de stock autorisée
+
+`fr.lkdm.homecore.api.stock` décrit un stock **en lecture seule**. Un mod de stockage
+publie `StockProvider.CAPABILITY` sur son appareil ; un consommateur lit ce contrat
+sans jamais importer les classes internes du stockage.
+
+`StockProvider.observe(StockRequest)` reçoit une question bornée : un réseau, un joueur
+authentifié et au plus `StockRequest.MAX_VARIANTS` variantes. L'implémentation revalide
+à chaque appel l'appartenance, la permission `VIEW` sur ce réseau, le rattachement de
+l'appareil et sa propre portée. Un échec renvoie `StockSnapshot.unavailable`, jamais les
+données d'un autre réseau.
+
+La réponse distingue trois faits que rien ne doit confondre :
+
+- `StockAvailability.COMPLETE` : tout le périmètre a été observé, une variante absente
+  est réellement absente ;
+- `StockAvailability.PARTIAL` : une partie n'a pas pu être observée, une absence ne
+  prouve donc rien ;
+- `StockAvailability.UNAVAILABLE` : rien n'a été observé. **Inconnu n'est pas zéro.**
+
+`StockAccess` sépare lire et récupérer : `READ_ONLY` signifie que le joueur voit la
+quantité sans pouvoir la retirer, et un consommateur doit l'afficher ainsi.
+
+Chaque `StockEntry` attribue ses quantités à des `StockSourceId` canoniques
+(dimension + position de l'inventaire logique, par exemple la première moitié d'un
+double coffre). Deux contrôleurs qui couvrent le même coffre renvoient la même identité :
+un consommateur qui agrège plusieurs fournisseurs le compte donc une fois, au lieu de
+doubler le stock. Lire n'extrait, ne déplace, ne réserve et ne recharge aucun chunk.
+
+## Description publique des recettes
+
+`fr.lkdm.homecore.api.recipe` fournit une description neutre. Le mod propriétaire d'un
+type de recette enregistre son adaptateur une fois via
+`RecipeDescriptors.register(type, provider)` ; HomeCore le fait pour `homecore:electronics`.
+`RecipeDescriptors.describe(holder)` renvoie un `Optional<RecipeDescriptor>` vide pour un
+type sans adaptateur : ce cas doit être affiché comme « recette non prise en charge »,
+jamais deviné.
+
+Les quantités d'un `RecipeDescriptor` décrivent **une opération** :
+`ingredients()` est consommé une fois et `result()` porte le rendement.
+`operationsFor(restant)` arrondit au supérieur — il faut 3 opérations pour 10 objets
+restants avec un rendement de 4, soit 12 produits dont 2 en surplus. `maxBatchOutput()`
+reste la limite du producteur : la demande d'une tâche ne l'élargit pas.
+
+## Reçus de production
+
+`fr.lkdm.homecore.api.production` notifie les lots **réellement terminés**.
+`DashboardAPI.production(server)` expose le canal ; l'établi électronique y publie au
+moment exact où le résultat apparaît dans son emplacement de sortie.
+
+Un `ProductionReceipt` porte l'identité de transaction du lot, le joueur sous
+l'autorité duquel il a été démarré, la recette, le résultat réel et les tics serveur de
+démarrage et de fin. `result().getCount()` est la quantité **d'objets finis** : un lot de
+64 composants rapporte 64, pas 1. Les tics serveur avancent de façon monotone et ne sont
+pas modifiés par `/time set`, ce qui permet à un consommateur de refuser de créditer un
+lot démarré avant l'activation de son suivi.
+
+Un lot annulé ou remboursé n'émet aucun reçu, et reprendre l'objet fini dans le slot de
+sortie n'en émet pas davantage. Le canal ne conserve pas d'historique : un consommateur
+doit créditer chaque `transactionId()` au plus une fois, car un reçu peut être délivré
+de nouveau.
 
 ## Client Dashboard
 

@@ -119,12 +119,14 @@ tasks.register('publishHomeCoreToCurseForge', net.darkhax.curseforgegradle.TaskP
 
     // Publishing is excluded from the configuration cache so the API token is never cached.
     apiToken = curseForgeToken
+    debugMode = providers.gradleProperty('curseforge_dry_run').map { it.toBoolean() }.getOrElse(false)
 
     def mainFile = upload(1711592, tasks.named('jar'))
     mainFile.displayName = "HomeCore ${releaseVersion}"
     mainFile.changelog = "HomeCore ${releaseVersion} for Minecraft ${minecraft_version} and NeoForge ${neo_version}."
     mainFile.changelogType = 'markdown'
     mainFile.releaseType = 'release'
+    mainFile.addGameVersion(minecraft_version)
     mainFile.addEnvironment('Client', 'Server')
     mainFile.addModLoader('NeoForge')
 }

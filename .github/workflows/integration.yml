@@ -6,6 +6,14 @@ on:
         description: 'HomeCore: SHA complet du commit contenant le harnais et l’API compatible'
         type: string
         required: true
+      dashboard_sha:
+        description: 'HomeLink-Dashboard: SHA complet compatible'
+        type: string
+        required: true
+      tasks_sha:
+        description: 'HomeLink-Tasks: SHA complet compatible'
+        type: string
+        required: true
       farm_sha:
         description: 'HomeLink-Farm: SHA complet compatible'
         type: string
@@ -22,18 +30,10 @@ on:
         description: 'HomeLink-Quarry: SHA complet compatible'
         type: string
         required: true
-      farm_version:
-        description: 'Version Farm attendue, vide pour le défaut du harnais'
+      consumer_versions:
+        description: 'Objet JSON optionnel de versions attendues, par exemple {"storage":"1.4.0"}'
         type: string
-      energy_version:
-        description: 'Version Energy attendue, vide pour le défaut du harnais'
-        type: string
-      storage_version:
-        description: 'Version Storage attendue, vide pour le défaut du harnais'
-        type: string
-      quarry_version:
-        description: 'Version Quarry attendue, vide pour le défaut du harnais'
-        type: string
+        default: '{}'
 permissions:
   contents: read
 jobs:
@@ -42,61 +42,82 @@ jobs:
     timeout-minutes: 45
     env:
       HOMECORE_SHA: ${{ inputs.homecore_sha }}
+      DASHBOARD_SHA: ${{ inputs.dashboard_sha }}
+      TASKS_SHA: ${{ inputs.tasks_sha }}
       FARM_SHA: ${{ inputs.farm_sha }}
       ENERGY_SHA: ${{ inputs.energy_sha }}
       STORAGE_SHA: ${{ inputs.storage_sha }}
       QUARRY_SHA: ${{ inputs.quarry_sha }}
-      FARM_VERSION: ${{ inputs.farm_version }}
-      ENERGY_VERSION: ${{ inputs.energy_version }}
-      STORAGE_VERSION: ${{ inputs.storage_version }}
-      QUARRY_VERSION: ${{ inputs.quarry_version }}
+      CONSUMER_VERSIONS: ${{ inputs.consumer_versions }}
     steps:
       - name: Require immutable commit references
         shell: bash
         run: |
-          for name in HOMECORE_SHA FARM_SHA ENERGY_SHA STORAGE_SHA QUARRY_SHA; do
+          for name in HOMECORE_SHA DASHBOARD_SHA TASKS_SHA FARM_SHA ENERGY_SHA STORAGE_SHA QUARRY_SHA; do
             value="${!name}"
             if [[ ! "$value" =~ ^[0-9a-fA-F]{40}$ ]]; then
               echo "::error::$name must contain a full 40-character commit SHA."
               exit 1
             fi
           done
-          for name in FARM_VERSION ENERGY_VERSION STORAGE_VERSION QUARRY_VERSION; do
-            value="${!name}"
-            if [[ -n "$value" && ! "$value" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-              echo "::error::$name must contain an explicit version or remain empty."
-              exit 1
-            fi
-          done
+          python3 - <<'PY'
+          import json, os, re
+          values = json.loads(os.environ.get("CONSUMER_VERSIONS") or "{}")
+          allowed = {"dashboard", "tasks", "farm", "energy", "storage", "quarry"}
+          if not isinstance(values, dict) or not set(values).issubset(allowed):
+              raise SystemExit("consumer_versions must be an object with recognized module names")
+          for module, version in values.items():
+              if not isinstance(version, str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?", version):
+                  raise SystemExit("Invalid explicit version for " + module)
+          PY
       - uses: actions/checkout@v4
         with:
           repository: LKDM7/HomeCore
           ref: ${{ inputs.homecore_sha }}
           path: HomeCore
+          token: ${{ secrets.HOMELINK_REPOSITORIES_TOKEN || github.token }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: LKDM7/HomeLink-Dashboard
+          ref: ${{ inputs.dashboard_sha }}
+          path: HomeLink
+          token: ${{ secrets.HOMELINK_REPOSITORIES_TOKEN || github.token }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: LKDM7/HomeLink-Tasks
+          ref: ${{ inputs.tasks_sha }}
+          path: HomeLinkTask
+          token: ${{ secrets.HOMELINK_REPOSITORIES_TOKEN || github.token }}
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: LKDM7/HomeLink-Farm
           ref: ${{ inputs.farm_sha }}
           path: FarmLink
+          token: ${{ secrets.HOMELINK_REPOSITORIES_TOKEN || github.token }}
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: LKDM7/HomeLink-Energy
           ref: ${{ inputs.energy_sha }}
           path: HomeLinkEnergy
+          token: ${{ secrets.HOMELINK_REPOSITORIES_TOKEN || github.token }}
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: LKDM7/HomeLink-Storage
           ref: ${{ inputs.storage_sha }}
           path: 'HomeLink Storage'
+          token: ${{ secrets.HOMELINK_REPOSITORIES_TOKEN || github.token }}
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: LKDM7/HomeLink-Quarry
           ref: ${{ inputs.quarry_sha }}
           path: HomeLinkQuarry
+          token: ${{ secrets.HOMELINK_REPOSITORIES_TOKEN || github.token }}
           persist-credentials: false
       - name: Verify checked-out commits and record provenance
         shell: bash
@@ -112,6 +133,8 @@ jobs:
             printf '%s %s\n' "$actual" "$directory" >> integration-evidence/revisions.txt
           }
           verify_commit HomeCore "$HOMECORE_SHA"
+          verify_commit HomeLink "$DASHBOARD_SHA"
+          verify_commit HomeLinkTask "$TASKS_SHA"
           verify_commit FarmLink "$FARM_SHA"
           verify_commit HomeLinkEnergy "$ENERGY_SHA"
           verify_commit 'HomeLink Storage' "$STORAGE_SHA"
@@ -126,20 +149,39 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Run GameTests with all five production mods
+      - name: Run checks and GameTests with all seven production mods
         working-directory: HomeCore
         shell: bash
         run: |
           arguments=()
-          for module in farm energy storage quarry; do
-            name="${module^^}_VERSION"
-            value="${!name}"
+          versions="${CONSUMER_VERSIONS:-}"
+          if [[ -z "$versions" ]]; then versions='{}'; fi
+          for module in dashboard tasks farm energy storage quarry; do
+            value="$(printf '%s' "$versions" | jq -r --arg module "$module" '.[$module] // empty')"
             if [[ -n "$value" ]]; then
               arguments+=("-P${module}_version=$value")
               printf '%s=%s\n' "$module" "$value" >> ../integration-evidence/version-overrides.txt
             fi
           done
-          bash gradlew -p integration-tests runGameTestServer --no-daemon --no-configuration-cache "${arguments[@]}"
+          bash gradlew -p integration-tests check runGameTestServer --no-daemon --no-configuration-cache "${arguments[@]}"
+      - name: Run six-consumer client smoke on a virtual display
+        working-directory: HomeCore
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+          arguments=()
+          versions="${CONSUMER_VERSIONS:-}"
+          if [[ -z "$versions" ]]; then versions='{}'; fi
+          for module in dashboard tasks farm energy storage quarry; do
+            value="$(printf '%s' "$versions" | jq -r --arg module "$module" '.[$module] // empty')"
+            if [[ -n "$value" ]]; then
+              arguments+=("-P${module}_version=$value")
+            fi
+          done
+          xvfb-run -a -s '-screen 0 1280x720x24' bash gradlew -p integration-tests runClientSmoke --no-daemon --no-configuration-cache "${arguments[@]}"
       - name: Record checksums of HomeCore artifacts under test
         if: always()
         shell: bash
@@ -157,6 +199,8 @@ jobs:
           path: |
             integration-evidence/
             HomeCore/integration-tests/build/server/logs/
+            HomeCore/integration-tests/build/client-smoke/logs/
+            HomeCore/integration-tests/build/client-smoke/screenshots/
             HomeCore/integration-tests/build/reports/
             HomeCore/integration-tests/build/test-results/
             HomeCore/integration-tests/build/server/*.xml

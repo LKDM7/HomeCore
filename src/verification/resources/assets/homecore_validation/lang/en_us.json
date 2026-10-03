@@ -1,0 +1,17 @@
+{
+  "ui.homecore_validation.title": "HomeLink UI Kit",
+  "ui.homecore_validation.normal": "Normal",
+  "ui.homecore_validation.hover": "Hover",
+  "ui.homecore_validation.disabled": "Disabled",
+  "ui.homecore_validation.selected": "Selected",
+  "ui.homecore_validation.tab_active": "Active tab",
+  "ui.homecore_validation.tab_other": "Other tab",
+  "ui.homecore_validation.focus": "Keyboard focus",
+  "ui.homecore_validation.long": "A long localized label that must be shortened with an ellipsis",
+  "ui.homecore_validation.input": "Editable HomeLink field",
+  "ui.homecore_validation.online": "Online",
+  "ui.homecore_validation.warning": "Warning",
+  "ui.homecore_validation.offline": "Offline",
+  "ui.homecore_validation.neutral": "Neutral",
+  "ui.homecore_validation.footer": "Minecraft font · keyboard and narration"
+}

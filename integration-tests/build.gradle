@@ -7,15 +7,20 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 repositories {
     mavenCentral()
     maven { url = 'https://maven.blamejared.com/'; content { includeGroup 'mezz.jei'; includeGroup 'net.mezzdev.config' } }
+    maven { url = 'https://maven.shedaniel.me/'; content { includeGroup 'me.shedaniel'; includeGroup 'me.shedaniel.cloth' } }
+    maven { url = 'https://maven.architectury.dev/'; content { includeGroup 'dev.architectury' } }
+    maven { url = 'https://maven.fabricmc.net/'; content { includeGroup 'net.fabricmc' } }
 }
 dependencies { implementation "fr.lkdm.homecore:homecore:${homecore_version}" }
 
-// Les quatre dépôts sont lus sans y écrire. Seuls leurs sources de production sont compilés.
+// Les six dépôts sont lus sans y écrire. Seuls leurs sources de production sont compilés.
 def modules = [
-    energy: [directory: 'HomeLinkEnergy', id: 'homelink_energy', version: '0.2.2'],
-    farm: [directory: 'FarmLink', id: 'homelink_farm', version: '1.2.0'],
-    storage: [directory: 'HomeLink Storage', id: 'homelink_storage', version: '1.1.0'],
-    quarry: [directory: 'HomeLinkQuarry', id: 'homelink_quarry', version: '1.2.0']
+    dashboard: [directory: 'HomeLink', id: 'homelink_dashboard', version: '1.6.0'],
+    energy: [directory: 'HomeLinkEnergy', id: 'homelink_energy', version: '0.5.0'],
+    farm: [directory: 'FarmLink', id: 'homelink_farm', version: '1.5.0'],
+    storage: [directory: 'HomeLink Storage', id: 'homelink_storage', version: '1.4.0'],
+    quarry: [directory: 'HomeLinkQuarry', id: 'homelink_quarry', version: '1.4.0'],
+    tasks: [directory: 'HomeLinkTask', id: 'homelink_tasks', version: '0.2.0']
 ]
 modules.each { name, spec ->
     spec.version = providers.gradleProperty("${name}_version").getOrElse(spec.version)
@@ -24,8 +29,10 @@ modules.each { name, spec ->
     if (!new File(directory, 'gradle.properties').isFile()) throw new GradleException("Dépôt absent : ${directory}")
     new File(directory, 'gradle.properties').withInputStream { values.load(it) }
     if (values.mod_version != spec.version) throw new GradleException("${name} exige la version ${spec.version}, trouvée ${values.mod_version}")
-    // Le harnais teste explicitement la nouvelle API, sans modifier les métadonnées des voisins.
-    values.homecore_version_range = "[${homecore_version},2.0.0)"
+    if (values.minecraft_version != '1.21.1' || values.homecore_version != homecore_version
+            || values.homecore_version_range != "[${homecore_version},2.0.0)") {
+        throw new GradleException("${name} doit déclarer Minecraft 1.21.1 et HomeCore ${homecore_version} dans ses vraies dépendances.")
+    }
     def metadata = tasks.register("${name}Metadata", ProcessResources) {
         inputs.properties values
         from new File(directory, 'src/main/templates')
@@ -35,12 +42,23 @@ modules.each { name, spec ->
     def sources = sourceSets.create(name) {
         java.srcDir new File(directory, 'src/main/java')
         resources.srcDir new File(directory, 'src/main/resources')
+        resources.srcDir new File(directory, 'src/generated/resources')
         resources.srcDir metadata
     }
     configurations.named(sources.implementationConfigurationName) { extendsFrom configurations.implementation }
-    if (name == 'storage') {
-        dependencies.add(sources.compileOnlyConfigurationName, "mezz.jei:jei-1.21.1-common-api:${values.jei_version}")
-        dependencies.add(sources.compileOnlyConfigurationName, "mezz.jei:jei-1.21.1-neoforge-api:${values.jei_version}")
+    dependencies.add(sources.compileOnlyConfigurationName, "mezz.jei:jei-1.21.1-common-api:${values.jei_version}")
+    dependencies.add(sources.compileOnlyConfigurationName, "mezz.jei:jei-1.21.1-neoforge-api:${values.jei_version}")
+    dependencies.add(sources.compileOnlyConfigurationName, "me.shedaniel:RoughlyEnoughItems-api-neoforge:${values.rei_version}")
+    dependencies.add(sources.compileOnlyConfigurationName, "me.shedaniel:RoughlyEnoughItems-neoforge:${values.rei_version}") {
+        transitive = false
+    }
+    dependencies.add(sources.compileOnlyConfigurationName, 'net.fabricmc:fabric-loader:0.16.14') {
+        transitive = false
+    }
+    if (values.architectury_version) {
+        dependencies.add(sources.compileOnlyConfigurationName, "dev.architectury:architectury-neoforge:${values.architectury_version}") {
+            transitive = false
+        }
     }
     sourceSets.main.compileClasspath += sources.output
     sourceSets.main.runtimeClasspath += sources.output
@@ -48,6 +66,10 @@ modules.each { name, spec ->
 
 neoForge {
     version = project.neo_version
+    parchment {
+        minecraftVersion = project.parchment_minecraft_version
+        mappingsVersion = project.parchment_mappings_version
+    }
     modules.each { name, spec ->
         addModdingDependenciesTo sourceSets[name]
         mods.create(spec.id) { sourceSet sourceSets[name] }
@@ -60,9 +82,103 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', 'homelink_integration'
             loadedMods = mods.toList()
         }
+        client {
+            client()
+            gameDirectory = file('build/client')
+            programArguments.addAll '--width', '1280', '--height', '720'
+            loadedMods = mods.toList()
+        }
+        clientSmoke {
+            client()
+            gameDirectory = file('build/client-smoke')
+            systemProperty 'homelink.integrationSmoke', 'true'
+            programArguments.addAll '--width', '1280', '--height', '720'
+            loadedMods = mods.toList()
+        }
     }
 }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
+
+// Inspect compiled constant fields, not source names, comments or local variables.
+def inspectUiClass = { File classFile ->
+    new DataInputStream(new FileInputStream(classFile)).withCloseable { input ->
+        if (input.readInt() != (int) 0xCAFEBABE) throw new GradleException("Invalid class file: ${classFile}")
+        input.readUnsignedShort()
+        input.readUnsignedShort()
+        int count = input.readUnsignedShort()
+        Object[] pool = new Object[count]
+        for (int index = 1; index < count; index++) {
+            int tag = input.readUnsignedByte()
+            switch (tag) {
+                case 1: pool[index] = input.readUTF(); break
+                case 3: pool[index] = input.readInt(); break
+                case 4: case 9: case 10: case 11: case 12: case 17: case 18:
+                    input.skipNBytes(4); break
+                case 5: case 6: input.skipNBytes(8); index++; break
+                case 7: case 8: case 16: case 19: case 20: input.skipNBytes(2); break
+                case 15: input.skipNBytes(3); break
+                default: throw new GradleException("Unsupported constant-pool tag ${tag}: ${classFile}")
+            }
+        }
+        input.readUnsignedShort()
+        input.readUnsignedShort()
+        input.readUnsignedShort()
+        input.skipNBytes(2L * input.readUnsignedShort())
+        Set<Integer> colors = new HashSet<>()
+        int fields = input.readUnsignedShort()
+        for (int field = 0; field < fields; field++) {
+            int access = input.readUnsignedShort()
+            input.readUnsignedShort()
+            def descriptor = pool[input.readUnsignedShort()]
+            int attributes = input.readUnsignedShort()
+            for (int attribute = 0; attribute < attributes; attribute++) {
+                def attributeName = pool[input.readUnsignedShort()]
+                int length = input.readInt()
+                if (attributeName == 'ConstantValue' && length == 2) {
+                    def value = pool[input.readUnsignedShort()]
+                    if ((access & 0x0018) == 0x0018 && descriptor == 'I' && value instanceof Integer) colors.add(value)
+                } else {
+                    input.skipNBytes(Integer.toUnsignedLong(length))
+                }
+            }
+        }
+        return [colors: colors, usesKit: pool.any { value -> value instanceof String
+                && (value.contains('fr/lkdm/homecore/api/client/ui/HomeLinkUi')
+                    || value.contains('fr/lkdm/homecore/api/client/ui/HomeLinkButton')) }]
+    }
+}
+
+def verifyUiKitConsumers = tasks.register('verifyUiKitConsumers') {
+    group = 'verification'
+    description = 'Checks every compiled consumer uses the public UI kit and carries no full shell palette copy.'
+    modules.each { name, spec ->
+        dependsOn tasks.named(sourceSets[name].compileJavaTaskName)
+        inputs.files(sourceSets[name].output.classesDirs)
+    }
+    doLast {
+        // Status colors may legitimately be domain-specific. These eight shell
+        // tokens detect the complete historical palette even under renamed fields.
+        Set<Integer> officialShell = [0xFF303234, 0xFF45474A, 0xFF252729, 0xFF4A4D50,
+                                      0xFF626568, 0xFFD2B181, 0xFFE7E5E0, 0xFFAFB1AD]
+                .collect { it.intValue() }.toSet()
+        Set<Integer> historicalShell = officialShell - [((int) 0xFF4A4D50)]
+        modules.each { name, spec ->
+            boolean usesKit = false
+            int inspected = 0
+            sourceSets[name].output.classesDirs.asFileTree.matching { include '**/*.class' }.each { classFile ->
+                def result = inspectUiClass(classFile)
+                inspected++
+                usesKit |= result.usesKit
+                if (result.colors.containsAll(historicalShell)) {
+                    throw new GradleException("${name} still embeds a full HomeLink shell palette: ${classFile}")
+                }
+            }
+            if (inspected == 0 || !usesKit) throw new GradleException("${name} has no compiled consumer of HomeLinkUi/HomeLinkButton.")
+            logger.lifecycle('UI kit verified: {} ({} classes)', name, inspected)
+        }
+    }
+}
+tasks.named('check') { dependsOn verifyUiKitConsumers }
 
 // Structure vide bornée à 12 x 8 x 12, produite en NBT sans outil externe.
 def structures = tasks.register('generateTestStructure') {
@@ -90,6 +206,18 @@ tasks.named('runGameTestServer') {
         def config = file('build/server/server.properties')
         config.parentFile.mkdirs()
         if (!config.exists()) config.text = ''
+    }
+}
+tasks.named('runClientSmoke') {
+    doFirst {
+        def directory = file('build/client-smoke')
+        directory.mkdirs()
+        new File(directory, 'options.txt').setText('onboardAccessibility:false\npauseOnLostFocus:false\ntutorialStep:none\nguiScale:2\nlang:en_us\n', 'UTF-8')
+    }
+    doLast {
+        def log = file('build/client-smoke/logs/latest.log').getText('UTF-8')
+        if (!log.contains('HOMELINK_INTEGRATION_CLIENT_OK') || log.contains('HOMELINK_INTEGRATION_CLIENT_FAILED'))
+            throw new GradleException('Seven-mod client smoke failed; inspect build/client-smoke/logs/latest.log')
     }
 }
 // Ce projet est uniquement un harnais de test, pas un mod distribuable.

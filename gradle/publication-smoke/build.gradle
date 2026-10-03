@@ -50,9 +50,15 @@ tasks.register('verifyPublishedArtifacts') {
                 || module.component.version != publishedVersion) {
             throw new GradleException('Published Gradle module coordinates do not match gradle.properties.')
         }
-        ['binary': ['fr/lkdm/homecore/api/item/ItemPort.class', 'META-INF/neoforge.mods.toml'],
-         'sources': ['fr/lkdm/homecore/api/item/ItemPort.java'],
-         'javadoc': ['fr/lkdm/homecore/api/item/ItemPort.html']].each { label, expected ->
+        ['binary': ['fr/lkdm/homecore/api/item/ItemPort.class',
+                    'fr/lkdm/homecore/api/client/ui/HomeLinkButton.class',
+                    'fr/lkdm/homecore/api/client/ui/HomeLinkUi.class', 'META-INF/neoforge.mods.toml'],
+         'sources': ['fr/lkdm/homecore/api/item/ItemPort.java',
+                     'fr/lkdm/homecore/api/client/ui/HomeLinkButton.java',
+                     'fr/lkdm/homecore/api/client/ui/HomeLinkUi.java'],
+         'javadoc': ['fr/lkdm/homecore/api/item/ItemPort.html',
+                     'fr/lkdm/homecore/api/client/ui/HomeLinkButton.html',
+                     'fr/lkdm/homecore/api/client/ui/HomeLinkUi.html']].each { label, expected ->
             new java.util.zip.ZipFile(filesByKind[label]).withCloseable { archive ->
                 expected.each { entry ->
                     if (archive.getEntry(entry) == null) throw new GradleException("Missing ${entry} in published ${label}.")

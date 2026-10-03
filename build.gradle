@@ -37,6 +37,7 @@ dependencies {
 
 tasks.named('test', Test) {
     useJUnitPlatform()
+    systemProperty 'homecore.mainClasses', sourceSets.main.output.classesDirs.singleFile.absolutePath
     testLogging { events 'failed', 'skipped' }
 }
 
@@ -143,6 +144,11 @@ def verifyReleaseJar = tasks.register('verifyReleaseJar') {
                 throw new GradleException('Development or test classes found in release JAR.')
             }
             for (def entry : ['fr/lkdm/homecore/HomeCore.class', 'fr/lkdm/homecore/api/DashboardAPI.class',
+                             'fr/lkdm/homecore/api/client/ui/HomeLinkTheme.class',
+                             'fr/lkdm/homecore/api/client/ui/HomeLinkUi.class',
+                             'fr/lkdm/homecore/api/client/ui/HomeLinkButton.class',
+                             'fr/lkdm/homecore/api/client/ui/HomeLinkScreenLayout.class',
+                             'fr/lkdm/homecore/api/client/ui/HomeLinkStatusTone.class',
                              'fr/lkdm/homecore/api/item/ItemPort.class',
                              'fr/lkdm/homecore/api/item/ItemPortType.class',
                              'fr/lkdm/homecore/api/item/ItemApi.class',
@@ -321,6 +327,13 @@ neoForge {
             systemProperty 'homecore.networkSmoke', 'true'
             systemProperty 'homecore.debugSmoke', 'true'
         }
+        uiSmoke {
+            client()
+            loadedMods = [mods.homecore, mods.homecore_validation]
+            gameDirectory = file('build/validation/ui-client')
+            systemProperty 'homecore.uiSmoke', 'true'
+            programArguments.addAll('--width', '1280', '--height', '720')
+        }
     }
 }
 
@@ -347,6 +360,26 @@ def generateModMetadata = tasks.register('generateModMetadata', ProcessResources
 
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
+
+def uiSmokeDir = layout.buildDirectory.dir('validation/ui-client')
+def uiSmokeLanguage = providers.gradleProperty('uiSmokeLanguage').getOrElse('en_us')
+tasks.named('runUiSmoke') {
+    doFirst {
+        def options = new File(uiSmokeDir.get().asFile, 'options.txt')
+        options.parentFile.mkdirs()
+        options.setText('onboardAccessibility:false\npauseOnLostFocus:false\nrenderDistance:2\nsimulationDistance:5\nmaxFps:60\ninactivityFpsLimit:0\ntutorialStep:none\nguiScale:2\nlang:' + uiSmokeLanguage + '\n', 'UTF-8')
+    }
+    doLast {
+        def report = new File(uiSmokeDir.get().asFile, 'logs/latest.log')
+        def text = report.exists() ? report.getText('UTF-8') : ''
+        if (!text.contains('HOMECORE_UI_SMOKE_OK language=' + uiSmokeLanguage)
+                || !text.contains('HOMECORE_UI_VIEWPORT_OK width=640 height=360')
+                || !text.contains('HOMECORE_UI_VIEWPORT_OK width=427 height=240')
+                || text.contains('HOMECORE_UI_SMOKE_FAILED')) {
+            throw new GradleException('UI Kit client verification failed; inspect build/validation/ui-client/logs/latest.log.')
+        }
+    }
+}
 
 def networkSmokeLog = layout.buildDirectory.file('validation/network-client/logs/latest.log')
 def networkSmokeOptions = layout.buildDirectory.file('validation/network-client/options.txt')

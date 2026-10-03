@@ -1,7 +1,7 @@
 # HomeCore transport v2
 
 The public payloads live in `fr.lkdm.homecore.api.transport`. NeoForge negotiates
-protocol `2` (HomeCore 1.1.0). Both peers must use the matching protocol; existing
+protocol `2` in HomeCore 1.14.0. Both peers must use the matching protocol; existing
 Java page APIs and value discriminants remain available. Payload registration is direction-specific and all handlers enter
 the receiving game's main thread before accessing state.
 

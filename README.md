@@ -1,4 +1,4 @@
-# HomeCore 1.13.0
+# HomeCore 1.14.0
 
 Version anglaise : [README.en.md](README.en.md).
 
@@ -8,7 +8,7 @@ Configuration de publication CurseForge : [README anglais](README.en.md#publish-
 
 API commune pour les appareils et réseaux d'une base Minecraft. HomeCore ne dépend d'aucun mod consommateur : Home Dashboard, Farm Monitor et une carte holographique peuvent utiliser ses contrats sans que HomeCore connaisse leurs implémentations.
 
-Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API : `DashboardAPI.API_VERSION = "1.8.0"`.
+Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API : `DashboardAPI.API_VERSION = "1.9.0"`.
 
 ## Construire et installer
 
@@ -19,13 +19,13 @@ Configurer `JAVA_HOME` vers un JDK 21 puis utiliser le wrapper :
 ./gradlew.bat runClient
 ```
 
-Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.13.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
+Sur Linux/macOS, utiliser `./gradlew`. Les JAR sont dans `build/libs` ; installer `homecore-1.14.0.jar` dans `mods` côté client et serveur. Le serveur de jeu normal requiert l'acceptation de l'EULA Minecraft par son administrateur.
 
-Pour développer un mod consommateur, utiliser une version publiée explicite. Le dépôt Maven et le mode composite local sont décrits dans [DEPENDENCIES.md](docs/DEPENDENCIES.md). Dans son projet ModDevGradle :
+Pour développer un mod consommateur, déclarer une version explicite. Utiliser les sources locales par composite, ou l’artefact Maven lorsque cette version a réellement été publiée. Le dépôt Maven et le mode composite local sont décrits dans [DEPENDENCIES.md](docs/DEPENDENCIES.md). Dans son projet ModDevGradle :
 
 ```groovy
 // Configurer le dépôt Maven selon docs/DEPENDENCIES.md.
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.13.0' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.14.0' }
 ```
 
 Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identifiant :
@@ -34,18 +34,29 @@ Ajouter à son `neoforge.mods.toml`, en remplaçant `examplemod` par son identif
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.13.0,2.0.0)"
+versionRange="[1.14.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
 
 Le build ne publie rien. Le développement simultané de plusieurs mods utilise un build composite explicite ; il ne télécharge ni ne met à jour les sources depuis GitHub.
 
+## HomeLink UI Kit
+
+HomeCore 1.14.0 fournit la norme visuelle officielle HomeLink dans `fr.lkdm.homecore.api.client.ui` : palette graphite/acier/cuivre, cadre industriel, panneaux encastrés, boutons accessibles et layout adaptatif facultatif. Dashboard utilise cette API cliente publique ; aucun consommateur n'a besoin de Dashboard pour afficher son GUI.
+
+`HomeLinkTheme`, `HomeLinkStatusTone`, `HomeLinkUi`, `HomeLinkButton` et `HomeLinkScreenLayout` sont réservés au code client. Les écrans conservent leur logique métier et leurs slots. Les nouveaux mods, notamment Furnace, et les vues Storage Pipes utilisent directement ce kit.
+
+Le [guide de style FR/EN](docs/UI_STYLE.md) contient la palette, les dimensions, les règles d'accessibilité et les exemples d'écran, bouton, champ et jauge. Le [guide de migration](docs/UI_MIGRATION.md) documente les thèmes remplacés et les différences réelles entre les dépôts.
+
+Les [notes de version du kit UI](docs/UI_RELEASE_NOTES.md) recensent les fichiers migrés, les versions et les validations effectuées.
+
 ## Composants HomeLink
 
 Les nouveaux contrats d'intégration sont décrits dans [Ports d'objets](docs/ITEM_PORTS.md)
 et le [guide du connecteur HomeLink](docs/CONNECTOR.md).
-La [migration 1.10](docs/MIGRATION_1_10.md) précise l'ordre de livraison. Les
+La [migration historique 1.10](docs/MIGRATION_1_10.md) décrit sa livraison ; la
+[migration UI](docs/UI_MIGRATION.md) décrit la norme cliente actuelle. Les
 [tests intermods](integration-tests/README.md) et leur [workflow CI](docs/INTEGRATION_CI.md)
 vérifient les vrais appareils de plusieurs mods sur le même serveur.
 
@@ -304,7 +315,7 @@ actif jusqu'à 128 appareils, snapshots initiaux répartis sur plusieurs ticks p
 deltas uniquement. `NetworkWatchResponse.truncated()` signale explicitement les
 réseaux dépassant cette limite. Les changements de liste et de permissions sont
 transmis sans recharger les appareils conservés ; les événements couvrent tout le
-réseau autorisé. HomeCore 1.10.0 utilise le protocole réseau 2, requis sur les deux
+réseau autorisé. HomeCore 1.14.0 utilise le protocole réseau 2, requis sur les deux
 côtés. L'ancienne API paginée reste disponible.
 
 Depuis du code client uniquement, `HomeCoreClient.requestDevices(Optional.empty(), 0)` demande les réseaux visibles. Passer ensuite `Optional.of(networkId)` pour recevoir appareils, snapshots et changements. Une page contient au maximum 16 identifiants ; utiliser `nextOffset` pour continuer. Une seule page d'appareils est active par joueur.

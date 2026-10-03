@@ -5,6 +5,12 @@ pluginManagement {
     }
 }
 rootProject.name = 'homelink-integration-tests'
+def localCore = new Properties()
+file('../gradle.properties').withInputStream { localCore.load(it) }
+if (localCore.mod_version != providers.gradleProperty('homecore_version').get()
+        || localCore.minecraft_version != '1.21.1') {
+    throw new GradleException('Le checkout HomeCore doit correspondre à la version explicite du harnais et à Minecraft 1.21.1.')
+}
 includeBuild('..') {
     dependencySubstitution {
         substitute module('fr.lkdm.homecore:homecore') using project(':')

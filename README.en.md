@@ -1,10 +1,10 @@
-# HomeCore 1.13.0
+# HomeCore 1.14.0
 
 French version: [README.md](README.md).
 
 HomeCore is a shared API for devices and networks in a Minecraft base. It does not depend on consumer mods: Home Dashboard, Farm Monitor and a holographic map can use its contracts without HomeCore knowing about their implementations.
 
-Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API: `DashboardAPI.API_VERSION = "1.8.0"`.
+Minecraft **1.21.1**, NeoForge **21.1.250**, Java **21**. API: `DashboardAPI.API_VERSION = "1.9.0"`.
 
 ## Build and install
 
@@ -15,13 +15,13 @@ Set `JAVA_HOME` to a JDK 21 installation, then use the Gradle wrapper:
 ./gradlew.bat runClient
 ```
 
-On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.13.0.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
+On Linux/macOS, use `./gradlew`. JAR files are written to `build/libs`; install `homecore-1.14.0.jar` in the `mods` folder on both the client and server. A normal Minecraft server requires its administrator to accept the Minecraft EULA.
 
-To develop a consumer mod, use an explicit published version. See [DEPENDENCIES.md](docs/DEPENDENCIES.md) for Maven configuration and local composite builds. Add this to the ModDevGradle project:
+To develop a consumer mod, declare an explicit version. Use local sources through a composite build, or Maven once that version has actually been published. See [DEPENDENCIES.md](docs/DEPENDENCIES.md) for Maven configuration and local composite builds. Add this to the ModDevGradle project:
 
 ```groovy
 // Configure the Maven repository as described in docs/DEPENDENCIES.md.
-dependencies { implementation 'fr.lkdm.homecore:homecore:1.13.0' }
+dependencies { implementation 'fr.lkdm.homecore:homecore:1.14.0' }
 ```
 
 Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
@@ -30,7 +30,7 @@ Add this to its `neoforge.mods.toml`, replacing `examplemod` with its mod ID:
 [[dependencies.examplemod]]
 modId="homecore"
 type="required"
-versionRange="[1.13.0,2.0.0)"
+versionRange="[1.14.0,2.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -57,11 +57,22 @@ When you are ready to upload a release, run:
 
 CurseForge may review the uploaded file before making it available on the project page.
 
+## HomeLink UI Kit
+
+HomeCore 1.14.0 supplies the official HomeLink visual standard in `fr.lkdm.homecore.api.client.ui`: graphite, steel and copper tokens, industrial frames, recessed panels, accessible buttons and an optional adaptive layout. Dashboard consumes this public client API; consumers do not need Dashboard installed to display their interfaces.
+
+`HomeLinkTheme`, `HomeLinkStatusTone`, `HomeLinkUi`, `HomeLinkButton` and `HomeLinkScreenLayout` belong exclusively in client code. Screens retain their business logic and inventory slots. New mods, including Furnace, and Storage Pipes views use this kit directly.
+
+The [French/English style guide](docs/UI_STYLE.md) covers palette, dimensions, accessibility and screen, button, text-field and gauge examples. The [migration guide](docs/UI_MIGRATION.md) records replacement classes and actual differences between the repositories.
+
+The [UI kit release notes](docs/UI_RELEASE_NOTES.md) list migrated files, versions and completed validation.
+
 ## HomeLink components
 
 See the [item-port contract](docs/ITEM_PORTS.md) and the
 [HomeLink Connector guide](docs/CONNECTOR.md) for the shared integration tools.
-The [migration guide](docs/MIGRATION_1_10.md) describes release ordering.
+The [historical 1.10 migration](docs/MIGRATION_1_10.md) describes that release;
+the [UI migration guide](docs/UI_MIGRATION.md) covers the current client standard.
 [Integration tests](integration-tests/README.md) and their [CI workflow](docs/INTEGRATION_CI.md)
 exercise production devices from several mods on the same server.
 
@@ -315,7 +326,7 @@ var subscription = DashboardAPI.production(server).subscribe(receipt -> {
 
 ## Dashboard client
 
-For a dashboard, use `HomeCoreClient.subscribeNetwork(networkId)`: an active subscription for up to 128 devices, with initial snapshots spread across multiple ticks followed by deltas only. `NetworkWatchResponse.truncated()` explicitly reports networks larger than this limit. Membership and permission changes are sent without reloading devices that remain; events cover the entire network the player is authorized to see. HomeCore 1.10.0 uses network protocol 2, which must match on both sides. The older paginated API remains available.
+For a dashboard, use `HomeCoreClient.subscribeNetwork(networkId)`: an active subscription for up to 128 devices, with initial snapshots spread across multiple ticks followed by deltas only. `NetworkWatchResponse.truncated()` explicitly reports networks larger than this limit. Membership and permission changes are sent without reloading devices that remain; events cover the entire network the player is authorized to see. HomeCore 1.14.0 uses network protocol 2, which must match on both sides. The older paginated API remains available.
 
 From client code only, `HomeCoreClient.requestDevices(Optional.empty(), 0)` requests visible networks. Then pass `Optional.of(networkId)` to receive devices, snapshots and changes. A page contains at most 16 IDs; use `nextOffset` to continue. Only one device page is active per player.
 

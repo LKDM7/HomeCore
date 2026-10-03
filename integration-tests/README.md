@@ -1,36 +1,114 @@
 # Tests d'intégration HomeLink
 
-Ce projet charge HomeCore, Energy, Farm, Storage et Quarry ensemble dans un serveur GameTest NeoForge. Les appareils sont les classes de production des mods : aucun dropper de substitution ni injection d'énergie dans Farm.
+Ce harnais charge HomeCore et les six consommateurs HomeLink ensemble : Dashboard,
+Storage, Farm, Quarry, Energy et Tasks. Il compile leurs sources et ressources de
+production dans des source sets séparés sans modifier les dépôts voisins ni lancer
+leurs builds. Les cinq GameTests historiques conservent leur logique de transferts
+et de permissions ; l'ajout de Dashboard et Tasks vérifie aussi leur chargement sur
+le même serveur dédié.
 
-La [CI d'intégration](../docs/INTEGRATION_CI.md) permet d'exécuter ce harnais avec cinq révisions Git explicites.
+## Versions et chemins explicites
+
+| Module | Version attendue | Dossier voisin |
+| --- | --- | --- |
+| HomeCore | 1.14.0 / API 1.9.0 | `..` (build composite parent) |
+| Dashboard | 1.6.0 | `../../HomeLink` |
+| Storage | 1.4.0 | `../../HomeLink Storage` |
+| Farm | 1.5.0 | `../../FarmLink` |
+| Quarry | 1.4.0 | `../../HomeLinkQuarry` |
+| Energy | 0.5.0 | `../../HomeLinkEnergy` |
+| Tasks | 0.2.0 | `../../HomeLinkTask` |
+
+Minecraft 1.21.1, NeoForge 21.1.252, Java 21. Les noms de paramètres sont
+`dashboard_dir/version`, `storage_dir/version`, `farm_dir/version`,
+`quarry_dir/version`, `energy_dir/version`, `tasks_dir/version` (chaque propriété
+se passe séparément avec `-P`). Le harnais refuse un checkout dont la version réelle
+ne correspond pas à celle demandée. Il vérifie aussi la version Minecraft et les
+vraies dépendances HomeCore exactes et minimales des consommateurs ; il ne réécrit
+plus leurs métadonnées pour simuler une migration.
+
+Parchment 1.21.1 / 2024.11.17 aligne la compilation des sources Dashboard et Tasks.
+JEI, REI, Fabric annotations et, pour Storage, Architectury sont uniquement des
+dépendances de compilation de leurs intégrations optionnelles. Aucun de ces mods
+optionnels n'est ajouté au runtime du harnais. HomeCore vient du composite local ;
+aucun registry distant ou Maven local n'est publié par ce projet.
+
+## Exécution
 
 Depuis HomeCore :
 
 ```powershell
-.\gradlew.bat -p integration-tests classes
+.\gradlew.bat -p integration-tests classes check
 .\gradlew.bat -p integration-tests runGameTestServer
+.\gradlew.bat -p integration-tests runClientSmoke
+.\gradlew.bat -p integration-tests runClient
 ```
 
-Sous Linux, employer `./gradlew`. Java 21 est nécessaire. Les dépôts frères attendus sont `HomeLinkEnergy` 0.2.2, `FarmLink` 1.2.0, `HomeLink Storage` 1.1.0 et `HomeLinkQuarry` 1.2.0. Leurs chemins sont réglables avec `-Penergy_dir`, `-Pfarm_dir`, `-Pstorage_dir` et `-Pquarry_dir`. Une autre version se sélectionne explicitement avec les propriétés correspondantes ; le harnais refuse tout checkout dont la version ne correspond pas à celle demandée. Ces versions doivent être préparées ou publiées avant utilisation ; les anciens checkouts ne sont pas mis à jour automatiquement.
+Sous Linux/macOS, utiliser `./gradlew`. `runClient` charge les six mods pour une
+revue manuelle commune ; ce lancement n'est pas un smoke automatique et n'annonce
+aucun résultat visuel. Les smokes natifs de chaque consommateur restent nécessaires
+pour couvrir leurs screens, focus clavier, petites fenêtres et FR/EN.
 
-Le harnais compile leurs sources et ressources réelles dans des source sets séparés, sans exécuter leurs builds ni écrire dans leurs dépôts. HomeCore 1.10.0 vient du build composite parent. Aucun dépôt Maven local n'est utilisé. Les métadonnées de test exigent HomeCore 1.10.0 ; elles ne constituent pas une publication des consommateurs.
+`runClientSmoke` attend la fin du chargement des ressources au menu principal,
+vérifie que les six consommateurs et HomeCore sont chargés, puis ouvre un petit
+écran utilisant le kit partagé sans créer de monde. Il teste l'activation clavier,
+la tabulation et la saisie du champ vanilla. Après un véritable frame rendu, il
+vérifie un pixel `BACKGROUND`, écrit une capture PNG et exige le marqueur
+`HOMELINK_INTEGRATION_CLIENT_OK`. Cela vérifie le chargement commun et le kit,
+pas les screens métier de chaque mod. Le fixture est enregistré uniquement avec
+`Dist.CLIENT` ; le serveur dédié ne doit pas le charger.
 
-Les tests couvrent :
+`check` inclut `verifyUiKitConsumers` : inspection des champs constants des classes
+compilées pour détecter une palette complète de shell copiée, même si les champs
+ont été renommés. Le contrôle autorise les couleurs métier isolées et exige des
+références réelles à `HomeLinkUi` ou `HomeLinkButton` dans chaque consommateur.
+Il ne dépend ni des commentaires ni des noms de variables locales.
 
-- Production réelle d'un panneau Energy et transfert automatique vers une station Farm, avec conservation des HE.
-- Sortie automatique FarmBot Station vers un vrai Storage Deposit et interdiction des opérations contraires aux ports INPUT/OUTPUT.
-- Sortie automatique arrière Quarry vers un vrai Deposit presque plein, avec conservation exacte des objets.
-- Face écran fermée du Deposit puis reprise du transfert après rotation.
-- Même liaison HomeNetwork pour les quatre familles, refus sans permission sur le réseau quitté, migration, propriétaire préservé, détachement et sauvegarde Storage.
+Les journaux sont dans `integration-tests/build/server/logs` et
+`integration-tests/build/client/logs`. Ce projet n'est pas un mod distribuable ;
+son task `jar` est désactivé.
+Les preuves du smoke sont dans `integration-tests/build/client-smoke/logs` et
+`screenshots`.
 
-Les stocks initiaux de récoltes et minerai sont des fixtures. Ces tests isolent les transferts ; ils ne prétendent pas couvrir une récolte ou un chantier de minage complet. Les GameTests unitaires des mods restent complémentaires.
+## Couverture des cinq GameTests
 
-Les journaux sont dans `integration-tests/build/server/logs`. Un projet compilé n'est pas une preuve de réussite des GameTests : seul le résultat du serveur valide les interactions.
+- Production réelle d'un panneau Energy et transfert vers une station Farm, avec conservation des HE.
+- Sortie FarmBot Station vers un vrai Storage Deposit et respect des ports INPUT/OUTPUT.
+- Sortie arrière Quarry vers un Deposit presque plein, avec conservation des objets.
+- Face écran fermée du Deposit et reprise après rotation.
+- Liaison HomeNetwork des quatre familles d'appareils, permissions, migration, propriétaire, détachement et sauvegarde Storage.
 
-Validation locale du 29 septembre 2026 : **les cinq GameTests ont réussi** sur
-NeoForge 21.1.251 avec les versions ci-dessus dans les copies locales de validation.
-Les builds natifs et GameTests des consommateurs ont aussi été exécutés séparément.
-Voir les résultats et les limites dans le [rapport HomeCore](../docs/VALIDATION.md).
+Les stocks initiaux de récoltes et minerai sont des fixtures. Les tests isolent
+les transferts et ne couvrent pas une récolte ou un chantier complet. Dashboard et
+Tasks sont chargés, mais ces cinq tests ne vérifient pas leurs scénarios métier.
 
-La validation a ensuite réussi dans GitHub Actions avec les cinq commits poussés.
-Les références exactes figurent dans le [rapport de publication](../docs/PUBLICATION_1_10.md).
+Ce README décrit la configuration et la couverture ; il ne prouve pas qu'un test
+a été exécuté. Les résultats de la validation historique HomeCore 1.10 sont dans
+[PUBLICATION_1_10.md](../docs/PUBLICATION_1_10.md). Ils ne valident pas les versions
+actuelles ni le nouveau UI Kit. Le [workflow CI](../docs/INTEGRATION_CI.md) charge
+désormais les six consommateurs depuis sept SHA explicites ; son fichier seul ne
+constitue pas une exécution réussie.
+
+## English
+
+This harness compiles real production sources for Dashboard 1.6.0, Storage 1.4.0,
+Farm 1.5.0, Quarry 1.4.0, Energy 0.5.0 and Tasks 0.2.0, with HomeCore 1.14.0 from
+the parent composite. All six consumers load in both the dedicated GameTest server
+and the manual client run. Existing five transfer/permission GameTests are
+unchanged; loading Dashboard/Tasks does not extend their business coverage.
+
+Use the commands above with Java 21. Repository paths and exact expected versions
+are configurable through each module's `*_dir` and `*_version` properties. Actual
+Minecraft and HomeCore dependencies are validated rather than silently overwritten.
+Optional viewer APIs are compile-only and are not added to the runtime.
+
+`check` verifies compiled constant fields for complete duplicated shell palettes,
+allows semantic colors and requires actual calls to the public HomeCore UI helpers
+or buttons. `runClient` is a manual review entry point, not an automated smoke.
+`runClientSmoke` automatically checks all seven production mods are loaded,
+vanilla keyboard activation/tab order/text input and the actual shared frame
+through a framebuffer pixel and a saved PNG. Its fixture is client-only and
+does not create a world or exercise the individual business screens.
+Native per-mod smokes and language/window/focus checks remain complementary.
+Building the harness publishes nothing. Historical 1.10 results are not evidence
+that the current versions or the UI migration passed validation.

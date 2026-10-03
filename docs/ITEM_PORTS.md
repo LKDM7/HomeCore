@@ -1,6 +1,7 @@
 # Ports d'objets HomeLink
 
-HomeCore 1.10.0, API 1.6.0, fournit le contrat `fr.lkdm.homecore.api.item`.
+HomeCore 1.14.0 / API 1.9.0 conserve le contrat `fr.lkdm.homecore.api.item`,
+introduit dans HomeCore 1.10.0 / API 1.6.0.
 La capability `ItemApi.BLOCK` expose un `ItemPort` par face du bloc. Le sens est
 défini du point de vue de la machine :
 

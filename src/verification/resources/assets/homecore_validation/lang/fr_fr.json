@@ -1,0 +1,17 @@
+{
+  "ui.homecore_validation.title": "Kit UI HomeLink",
+  "ui.homecore_validation.normal": "Normal",
+  "ui.homecore_validation.hover": "Survol",
+  "ui.homecore_validation.disabled": "Désactivé",
+  "ui.homecore_validation.selected": "Sélectionné",
+  "ui.homecore_validation.tab_active": "Onglet actif",
+  "ui.homecore_validation.tab_other": "Autre onglet",
+  "ui.homecore_validation.focus": "Focus clavier",
+  "ui.homecore_validation.long": "Un long libellé traduit qui doit être raccourci avec des points de suspension",
+  "ui.homecore_validation.input": "Champ HomeLink modifiable",
+  "ui.homecore_validation.online": "En ligne",
+  "ui.homecore_validation.warning": "Attention",
+  "ui.homecore_validation.offline": "Hors ligne",
+  "ui.homecore_validation.neutral": "Neutre",
+  "ui.homecore_validation.footer": "Police Minecraft · clavier et narration"
+}

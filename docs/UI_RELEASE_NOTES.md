@@ -34,6 +34,12 @@ avec un scissor absolu et garde ses actions visibles. Les overlays monde Farm
 et Quarry, l'eau Energy et les couleurs sémantiques Tasks restent propres à
 leur fonction.
 
+Les contrôles d'actions Dashboard emploient aussi les tokens partagés. Le menu
+déroulant conserve sa hauteur fonctionnelle de 20 px, avec focus ambre,
+scrollbar cuivre, ellipsis et tooltip complet. Cette normalisation de ses
+anciens contrôles est une évolution visuelle volontaire ; le cadre et le bouton
+de référence conservent leurs primitives historiques.
+
 Le futur HomeLink Furnace peut utiliser directement `frame`, `panel`,
 `HomeLinkButton.builder`, les tokens et `HomeLinkScreenLayout.fit` sans nouveau
 thème. Il n'est pas créé dans ce chantier. Les futurs GUI Storage Pipes doivent
@@ -68,6 +74,11 @@ their functional geometry. Slot-free Storage Terminal/Controller and Energy
 screens fit the viewport; Energy scrolls telemetry while retaining fixed
 actions. World overlays and domain-specific water/task colors stay local.
 
+Dashboard action controls also use the shared tokens. The dropdown retains its
+functional 20 px height, with amber focus, copper scrollbar, ellipsis and full
+label tooltips. These action controls have intentional visual changes; the
+reference frame and button retain the historical rendering primitives.
+
 Future Furnace and Storage Pipes screens can use the public kit directly.
 Furnace is not created here. The entire `fr.lkdm.homecore.api.client.ui` package
 is client-only; common/server code must not import, expose or indirectly load
@@ -101,13 +112,16 @@ keyboard focus and translated FR/EN labels remain required.
 Les résultats ci-dessous proviennent des dernières passes locales exécutées sur
 les sources de cette livraison. Les builds des sept dépôts sont réussis. Les
 smokes ciblent les interfaces modifiées ; ils ne couvrent pas tous les profils
-métier historiques disponibles. Aucun workflow distant n'est présenté comme
-exécuté dans ce rapport.
+métier historiques disponibles. La CI distante HomeCore du commit initial du
+kit et celles d'Energy, Storage, Farm, Quarry et Dashboard ont également réussi.
+Les résultats distants restent distincts des validations locales ; Tasks est
+encore en cours au moment de cette revue.
 
 These results come from the latest local runs against this release's sources.
 All seven repository builds passed. Targeted smokes cover the changed interfaces.
-This report makes no claim that every historical business profile or a remote
-workflow ran.
+The initial HomeCore kit commit, Energy, Storage, Farm, Quarry and Dashboard also
+passed remote CI. Remote results remain separate from local validation; Tasks
+is still running at the time of this review.
 
 | Dépôt / Repository | JUnit | Serveur dédié / Dedicated server | Dernier état client / Latest client state |
 | --- | --- | --- | --- |
@@ -121,6 +135,12 @@ workflow ran.
 | Integration — 7 mods | Compiled checks passed | All seven production mods loaded; five integration GameTests passed | Combined client smoke passed: all seven mods loaded, native Enter/Tab/text input, actual framebuffer color and saved PNG. |
 
 Total confirmé : **410 tests JUnit**, sans échec, erreur ou test ignoré.
+Avant les pushes, les builds/tests Dashboard, Storage, Energy, Tasks et Quarry
+avec `-PwithStorage` ont été revérifiés avec succès, ainsi que le contrôle
+intégré des consommateurs et des JAR. Le smoke des actions Dashboard a réussi
+en EN et FR après la dernière normalisation du menu déroulant. L'audit des CI
+a parsé 7 workflows YAML, vérifié 29 blocs Bash et 12 références de dépendance,
+sans erreur. Ces vérifications locales n'exécutent pas les workflows distants.
 Les succès serveur restent des preuves distinctes des builds de documentation
 plus récents. Les tests de layout couvrent les dimensions minuscules et les
 bornes ; les tests de thème couvrent la palette et les mappings d'état ; le
@@ -205,11 +225,13 @@ laissent le biseau entier sont documentées dans les guides de migration locaux.
 Le kit ne garantit pas qu'un inventaire vanilla complet tienne dans une fenêtre
 arbitrairement petite ; chaque écran garde la responsabilité de son contenu.
 
-Les modifications des six consommateurs restent dans leurs checkouts locaux.
-La validation utilise ces sources par composite ; elle ne prouve pas que leurs
-branches distantes contiennent déjà la migration. HomeCore 1.14.0 n'a pas été
-publié sur un registry distant. Le staging Maven local sert uniquement à vérifier
-la résolution des artefacts. Aucun mod Furnace n'était présent à migrer.
+Les six migrations ont été commitées et poussées sur leurs branches distantes.
+La correction Hydro préexistante autorisée est livrée séparément dans le commit
+Energy `ca540c2`. Les CI consomment les sources compatibles de HomeCore et Energy
+à des SHA complets ; Tasks épingle aussi Storage. Elles ne supposent aucune
+publication Maven distante. HomeCore 1.14.0 n'a pas été publié sur un registry
+distant ; le staging local vérifie seulement la résolution des artefacts.
+Aucun mod Furnace n'était présent à migrer.
 
 Inventory screens retain functional dimensions. At high GUI scale, Farm/Quarry
 can have less than 8 pixels around the frame; controls remain visible in tested
@@ -217,45 +239,36 @@ small windows. Local migration guides record minimum sizes for the complete beve
 The kit cannot make a full vanilla inventory fit an arbitrarily tiny window;
 consumers remain responsible for their content.
 
-The six consumer migrations remain in their local checkouts. Composite validation
-does not claim their remote branches already contain these changes. HomeCore
-1.14.0 was not published to a remote registry; local Maven staging only verified
-artifact resolution. No Furnace repository was present to migrate.
+All six migrations were committed and pushed to their remote branches. The
+authorized existing Hydro correction is a separate Energy commit, `ca540c2`.
+CI checks out compatible HomeCore/Energy sources at full immutable SHAs; Tasks
+also pins Storage. No remote Maven publication is assumed or performed.
+Local staging verifies artifact resolution. No Furnace repository was present.
+
+### Commits des migrations / Migration commits
+
+These revisions identify the code migration; later documentation commits may
+advance the branches without changing the kit API.
+
+| Repository | Migration commit |
+| --- | --- |
+| HomeCore | `dbcd1dc9fe694796780498ef1628903c89f6d04f` |
+| Dashboard | `d1727903a16d38518c19378b1c1466c2326129bd` |
+| Storage | `d7b8c7adbbff2a497ae1a5be6ffc77208d6f2fa5` |
+| Farm | `b247827582f348e65413884a44cce7e31f642c6d` |
+| Quarry | `552c8b7e8df07760048fa654d15c865630a4734e` |
+| Energy | `57620158b6e29f47bccf951a6c253295dda73602` |
+| Tasks | `1b929ceffa2e6bf4782361637f4bffa13e74d961` |
 
 ## Inventaire des fichiers / File inventory
 
-`M` : modifié / modified ; `A` : créé / added ; `D` : supprimé / removed.
-Les chemins sont relatifs au dépôt indiqué. Cet inventaire suit le diff réel
-et les nouveaux fichiers utiles, hors sorties de build, outils locaux ignorés
-et fichiers sans diff. Les quatre modifications Energy préexistantes sont
-exclues : `WaterWindow.java`, `WaterWindowTest.java`, `HydroClientSmoke.java`,
-`HydroGameTests.java`. Leurs contenus ont été préservés.
-
-Paths are relative to the named repository. The inventory follows the actual
-diff and useful new files, excluding build output, ignored local tools and
-unchanged files. The four pre-existing Energy modifications named above are
-excluded and were preserved.
+`M`: modified; `A`: added; `D`: removed. Paths are relative to each repository.
+This list includes the complete delivery, including the separate Hydro fix and
+CI source pins. Build output, ignored local tools and unchanged files are excluded.
 
 ### HomeCore
 
 ```text
-M .github/workflows/integration.yml
-M README.en.md
-M README.md
-M build.gradle
-M docs/DEPENDENCIES.md
-M docs/INTEGRATION_CI.md
-M docs/ITEM_PORTS.md
-M docs/PROTOCOL.md
-M gradle.properties
-M gradle/publication-smoke/build.gradle
-M integration-tests/README.md
-M integration-tests/build.gradle
-M integration-tests/gradle.properties
-M integration-tests/settings.gradle
-M integration-tests/src/main/resources/META-INF/neoforge.mods.toml
-M src/main/java/fr/lkdm/homecore/api/DashboardAPI.java
-M src/main/java/fr/lkdm/homecore/workbench/client/ElectronicsScreen.java
 A docs/UI_MIGRATION.md
 A docs/UI_RELEASE_NOTES.md
 A docs/UI_STYLE.md
@@ -274,24 +287,44 @@ A src/test/java/fr/lkdm/homecore/api/client/ui/HomeLinkUiBoundaryTest.java
 A src/verification/java/fr/lkdm/homecore/verification/UiKitSmoke.java
 A src/verification/resources/assets/homecore_validation/lang/en_us.json
 A src/verification/resources/assets/homecore_validation/lang/fr_fr.json
+M .github/workflows/integration.yml
+M build.gradle
+M docs/DEPENDENCIES.md
+M docs/INTEGRATION_CI.md
+M docs/ITEM_PORTS.md
+M docs/PROTOCOL.md
+M gradle.properties
+M gradle/publication-smoke/build.gradle
+M integration-tests/build.gradle
+M integration-tests/gradle.properties
+M integration-tests/README.md
+M integration-tests/settings.gradle
+M integration-tests/src/main/resources/META-INF/neoforge.mods.toml
+M README.en.md
+M README.md
+M src/main/java/fr/lkdm/homecore/api/DashboardAPI.java
+M src/main/java/fr/lkdm/homecore/workbench/client/ElectronicsScreen.java
 ```
 
-### Dashboard — HomeLink
+### Dashboard
 
 ```text
-M README.md
+A docs/UI_MIGRATION.md
+D src/main/java/fr/lkdm/homelink/dashboard/client/rendering/DashboardTheme.java
+D src/main/java/fr/lkdm/homelink/dashboard/client/widget/DashboardButton.java
+M .github/workflows/ci.yml
 M build.gradle
 M docs/DESIGN.md
 M docs/DEVELOPER_GUIDE.md
 M gradle.properties
+M README.md
 M src/main/java/fr/lkdm/homelink/dashboard/client/rendering/DashboardDisplayRenderer.java
-D src/main/java/fr/lkdm/homelink/dashboard/client/rendering/DashboardTheme.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/rendering/MetricRendererRegistry.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/screen/DashboardScreen.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/widget/ActionControlRegistry.java
+M src/main/java/fr/lkdm/homelink/dashboard/client/widget/ActionDropdown.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/widget/ActionPanel.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/widget/AlertCenterView.java
-D src/main/java/fr/lkdm/homelink/dashboard/client/widget/DashboardButton.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/widget/DeviceExplorerView.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/widget/DiscoveryView.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/widget/EditorPalette.java
@@ -303,13 +336,17 @@ M src/main/java/fr/lkdm/homelink/dashboard/client/widget/NetworkView.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/widget/SettingsView.java
 M src/main/java/fr/lkdm/homelink/dashboard/client/widget/WidgetCards.java
 M src/verification/java/fr/lkdm/homelink/dashboard/verification/DashboardClientSmoke.java
-A docs/UI_MIGRATION.md
 ```
 
-### Storage — HomeLink Storage
+### Storage
 
 ```text
-M README.md
+A docs/UI_MIGRATION.md
+A src/main/java/fr/lkdm/homelink/storage/client/rendering/StorageStatusColors.java
+A src/verification/java/fr/lkdm/homelink/storage/verification/StorageUiChecks.java
+D src/main/java/fr/lkdm/homelink/storage/client/rendering/StorageTheme.java
+D src/main/java/fr/lkdm/homelink/storage/client/widget/StorageButton.java
+M .github/workflows/ci.yml
 M build.gradle
 M docs/DEVELOPMENT.md
 M docs/FILES.md
@@ -319,81 +356,126 @@ M docs/STORAGE_DEPOSIT.md
 M docs/STORAGE_PIPES_ARCHITECTURE.md
 M docs/USER_GUIDE.md
 M gradle.properties
+M README.md
 M src/main/java/fr/lkdm/homelink/storage/client/logistics/PipeChoiceScreen.java
 M src/main/java/fr/lkdm/homelink/storage/client/logistics/PipeRecoveryScreen.java
 M src/main/java/fr/lkdm/homelink/storage/client/logistics/PipeScreen.java
 M src/main/java/fr/lkdm/homelink/storage/client/rendering/CoverageRenderer.java
-D src/main/java/fr/lkdm/homelink/storage/client/rendering/StorageTheme.java
 M src/main/java/fr/lkdm/homelink/storage/client/screen/DepositScreen.java
 M src/main/java/fr/lkdm/homelink/storage/client/screen/StorageScreen.java
-D src/main/java/fr/lkdm/homelink/storage/client/widget/StorageButton.java
 M src/main/java/fr/lkdm/homelink/storage/client/widget/StorageManualView.java
+M src/main/resources/assets/homelink_storage/MATERIALS.md
 M src/verification/java/fr/lkdm/homelink/storage/verification/PipePersistenceGameTests.java
 M src/verification/java/fr/lkdm/homelink/storage/verification/StorageSmoke.java
-A docs/UI_MIGRATION.md
-A src/main/java/fr/lkdm/homelink/storage/client/rendering/StorageStatusColors.java
-A src/verification/java/fr/lkdm/homelink/storage/verification/StorageUiChecks.java
 ```
 
-### Farm — FarmLink
+### Farm
 
 ```text
-M README.md
-M gradle.properties
-M src/gametest/java/fr/lkdm/homelink/farm/gametest/client/HelpSmoke.java
-M src/main/java/fr/lkdm/homelink/farm/client/screen/FarmBotStationScreen.java
-D src/main/java/fr/lkdm/homelink/farm/client/screen/FarmButton.java
-M src/main/java/fr/lkdm/homelink/farm/client/screen/FarmDeviceScreen.java
-M src/main/java/fr/lkdm/homelink/farm/client/screen/FarmHelpView.java
-D src/main/java/fr/lkdm/homelink/farm/client/screen/FarmTheme.java
-M src/main/java/fr/lkdm/homelink/farm/client/screen/IrrigationPumpScreen.java
 A docs/UI_MIGRATION.md
 A src/main/java/fr/lkdm/homelink/farm/client/screen/FarmStatusColors.java
+D src/main/java/fr/lkdm/homelink/farm/client/screen/FarmButton.java
+D src/main/java/fr/lkdm/homelink/farm/client/screen/FarmTheme.java
+M .github/workflows/ci.yml
+M art/README.md
+M CHANGELOG.md
+M gradle.properties
+M README.md
+M src/gametest/java/fr/lkdm/homelink/farm/gametest/client/HelpSmoke.java
+M src/main/java/fr/lkdm/homelink/farm/client/screen/FarmBotStationScreen.java
+M src/main/java/fr/lkdm/homelink/farm/client/screen/FarmDeviceScreen.java
+M src/main/java/fr/lkdm/homelink/farm/client/screen/FarmHelpView.java
+M src/main/java/fr/lkdm/homelink/farm/client/screen/IrrigationPumpScreen.java
 ```
 
-### Quarry — HomeLinkQuarry
+### Quarry
 
 ```text
-M README.md
+A docs/UI_MIGRATION.md
+A src/main/java/fr/lkdm/homelink/quarry/client/screen/QuarryStatusColors.java
+D src/main/java/fr/lkdm/homelink/quarry/client/screen/QuarryButton.java
+D src/main/java/fr/lkdm/homelink/quarry/client/screen/QuarryTheme.java
+M .github/workflows/ci.yml
+M build.gradle
+M CHANGELOG.md
 M docs/HOMECORE.md
 M gradle.properties
-D src/main/java/fr/lkdm/homelink/quarry/client/screen/QuarryButton.java
+M README.md
+M settings.gradle
 M src/main/java/fr/lkdm/homelink/quarry/client/screen/QuarryHelpView.java
 M src/main/java/fr/lkdm/homelink/quarry/client/screen/QuarryScreen.java
 M src/main/java/fr/lkdm/homelink/quarry/client/screen/QuarryScreenLayout.java
-D src/main/java/fr/lkdm/homelink/quarry/client/screen/QuarryTheme.java
 M src/verification/java/fr/lkdm/homelink/quarry/verification/QuarryScenes.java
 M src/verification/java/fr/lkdm/homelink/quarry/verification/QuarrySmoke.java
-A docs/UI_MIGRATION.md
-A src/main/java/fr/lkdm/homelink/quarry/client/screen/QuarryStatusColors.java
 ```
 
-### Energy — HomeLinkEnergy
+### Energy
 
 ```text
-M README.md
+A docs/UI_MIGRATION.md
+A src/verification/java/fr/lkdm/homelink/energy/verification/EnergyGuiSmoke.java
+D src/main/java/fr/lkdm/homelink/energy/client/EnergyButton.java
+D src/main/java/fr/lkdm/homelink/energy/client/EnergyTheme.java
+M .github/workflows/ci.yml
 M docs/HOMECORE_AUDIT.md
 M gradle.properties
-D src/main/java/fr/lkdm/homelink/energy/client/EnergyButton.java
+M README.md
+M scripts/hydro-geometry.cjs
 M src/main/java/fr/lkdm/homelink/energy/client/EnergyScreen.java
-D src/main/java/fr/lkdm/homelink/energy/client/EnergyTheme.java
 M src/main/java/fr/lkdm/homelink/energy/client/HydroPumpScreen.java
 M src/main/java/fr/lkdm/homelink/energy/client/HydroTurbineScreen.java
 M src/main/java/fr/lkdm/homelink/energy/client/WindTurbineScreen.java
+M src/main/java/fr/lkdm/homelink/energy/hydro/WaterWindow.java
+M src/main/resources/assets/homelink_energy/models/block/hydro_louver.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pipe_arm.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pipe_core.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_1_0_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_1_0_1.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_1_1_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_1_1_1.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_2_0_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_2_0_1.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_2_1_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_2_1_1.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_3_0_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_3_0_1.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_3_1_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_pump_3_1_1.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_rotor_blade.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_rotor_hub.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_turbine_0_0_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_turbine_0_0_1.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_turbine_0_1_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_turbine_0_1_1.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_turbine_1_0_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_turbine_1_0_1.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_turbine_1_1_0.obj
+M src/main/resources/assets/homelink_energy/models/block/hydro_turbine_1_1_1.obj
+M src/main/resources/assets/homelink_energy/models/item/hydro_pipe.obj
+M src/main/resources/assets/homelink_energy/models/item/hydro_pump_1.obj
+M src/main/resources/assets/homelink_energy/models/item/hydro_pump_2.obj
+M src/main/resources/assets/homelink_energy/models/item/hydro_pump_3.obj
+M src/main/resources/assets/homelink_energy/models/item/hydro_turbine.obj
+M src/test/java/fr/lkdm/homelink/energy/hydro/WaterWindowTest.java
 M src/verification/java/fr/lkdm/homelink/energy/verification/ClientSmoke.java
-A docs/UI_MIGRATION.md
-A src/verification/java/fr/lkdm/homelink/energy/verification/EnergyGuiSmoke.java
+M src/verification/java/fr/lkdm/homelink/energy/verification/HydroClientSmoke.java
+M src/verification/java/fr/lkdm/homelink/energy/verification/HydroGameTests.java
 ```
 
-### Tasks — HomeLinkTask
+### Tasks
 
 ```text
-M README.md
+A src/main/java/fr/lkdm/homelink/tasks/client/TaskAvailabilityStyle.java
+A src/main/java/fr/lkdm/homelink/tasks/client/TaskItemButton.java
+D src/main/java/fr/lkdm/homelink/tasks/client/TaskButton.java
+D src/main/java/fr/lkdm/homelink/tasks/client/TaskTheme.java
+M .github/workflows/ci.yml
 M build.gradle
 M docs/adapters.md
 M docs/architecture.md
 M docs/validation.md
 M gradle.properties
+M README.md
 M src/main/java/fr/lkdm/homelink/tasks/client/BoardListScreen.java
 M src/main/java/fr/lkdm/homelink/tasks/client/BoardScreen.java
 M src/main/java/fr/lkdm/homelink/tasks/client/BoardSettingsScreen.java
@@ -410,12 +492,8 @@ M src/main/java/fr/lkdm/homelink/tasks/client/RecipeExpansionScreen.java
 M src/main/java/fr/lkdm/homelink/tasks/client/RecipePickerScreen.java
 M src/main/java/fr/lkdm/homelink/tasks/client/RecipeScreen.java
 M src/main/java/fr/lkdm/homelink/tasks/client/ScreenNetworkScreen.java
-D src/main/java/fr/lkdm/homelink/tasks/client/TaskButton.java
 M src/main/java/fr/lkdm/homelink/tasks/client/TaskDisplayRenderer.java
 M src/main/java/fr/lkdm/homelink/tasks/client/TaskMenuScreen.java
 M src/main/java/fr/lkdm/homelink/tasks/client/TaskScreen.java
-D src/main/java/fr/lkdm/homelink/tasks/client/TaskTheme.java
 M src/verification/java/fr/lkdm/homelink/tasks/verification/InGameValidation.java
-A src/main/java/fr/lkdm/homelink/tasks/client/TaskAvailabilityStyle.java
-A src/main/java/fr/lkdm/homelink/tasks/client/TaskItemButton.java
 ```

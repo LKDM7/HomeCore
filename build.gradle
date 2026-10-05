@@ -129,6 +129,8 @@ tasks.register('publishHomeCoreToCurseForge', net.darkhax.curseforgegradle.TaskP
     mainFile.addGameVersion(minecraft_version)
     mainFile.addEnvironment('Client', 'Server')
     mainFile.addModLoader('NeoForge')
+    mainFile.addOptional('jei')
+    mainFile.addOptional('roughly-enough-items')
 }
 
 def verifyReleaseJar = tasks.register('verifyReleaseJar') {

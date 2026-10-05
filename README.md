@@ -359,3 +359,7 @@ Pour une demande de joueur, appeler `DashboardAPI.bindDevice(player, device, Opt
 Un `DashboardDevice` peut implémenter `Switchable` (`powered`, `setPowered`) et `Renamable` (`rename`). HomeCore ajoute alors à son schéma les actions standard `homecore:power` (TOGGLE, permission CONTROL) et `homecore:rename` (TEXT, 50 caractères au plus, permission CONFIGURE), après les actions déclarées par l'appareil ; une action déclarée avec le même identifiant reste prioritaire. Le nom est transmis sans espaces de bord et sans caractères de contrôle ni de formatage ; un nom vide rétablit le nom par défaut.
 
 Ces deux actions restent disponibles tant que l'appareil n'est pas `OFFLINE`, pour pouvoir rallumer une machine éteinte ou renommer une machine en alerte. Les instantanés d'appareil portent l'état `powered`, et un changement de nom ou d'état renvoie la description de l'appareil aux Dashboards ouverts. API 1.7.0.
+
+## Licence
+
+Tous droits réservés © 2026 LKDM. Le code source est visible à titre de référence uniquement ; toute copie, modification ou redistribution nécessite une autorisation écrite. Voir [LICENSE](LICENSE).

@@ -369,3 +369,7 @@ For a player request, call `DashboardAPI.bindDevice(player, device, Optional.of(
 A `DashboardDevice` can implement `Switchable` (`powered`, `setPowered`) and `Renamable` (`rename`). HomeCore then appends the standard actions `homecore:power` (TOGGLE, CONTROL permission) and `homecore:rename` (TEXT, at most 50 characters, CONFIGURE permission) to its schema, after the device's own actions; an action the device declares with the same identifier takes precedence. The name arrives trimmed, without control or formatting characters; an empty name restores the default name.
 
 Both actions remain available while the device is not `OFFLINE`, so a switched-off machine can be switched on again and a machine in a warning state can still be renamed. Device snapshots carry the `powered` state, and a rename or power change resends the device description to open dashboards. API 1.7.0.
+
+## License
+
+All Rights Reserved © 2026 LKDM. The source code is visible for reference only; copying, modifying or redistributing it requires written permission. See [LICENSE](LICENSE).

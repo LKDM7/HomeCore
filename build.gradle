@@ -464,7 +464,7 @@ publishing {
                 name = 'HomeCore'
                 description = 'Shared API for connected HomeLink devices.'
                 url = 'https://github.com/LKDM7/HomeCore'
-                licenses { license { name = 'Apache License, Version 2.0'; url = 'https://www.apache.org/licenses/LICENSE-2.0.txt' } }
+                licenses { license { name = 'All Rights Reserved' } }
                 scm { url = 'https://github.com/LKDM7/HomeCore'; connection = 'scm:git:https://github.com/LKDM7/HomeCore.git' }
             }
         }

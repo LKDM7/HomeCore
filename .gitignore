@@ -27,11 +27,3 @@ run-debug-server/
 .env.local
 .env.*.local
 
-# Local workspace configuration
-AGENTS.md
-.agents/
-.codex/
-.claude/
-.claude-flow/
-.swarm/
-.ruflo/

@@ -347,7 +347,7 @@ Run `./gradlew.bat runDebugClient`, then use `/homecore_debug` to install the de
 ./gradlew.bat runWorkbenchSmoke
 ./gradlew.bat runWorkbenchSmoke -PworkbenchLanguage=fr_fr
 ```
-
+d l 
 The development smoke test also checks the command, `set_progress` action and event notification. JUnit tests cover the five initial values and three actions. The persistence passes use the same isolated world. The client smoke test creates an isolated integrated world, checks discovery, snapshot, action, result and delta without an additional snapshot, then closes the client. Completed validations are documented in [VALIDATION.md](docs/VALIDATION.md).
 
 ## Reachability constraints
